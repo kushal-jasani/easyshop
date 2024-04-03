@@ -1,3 +1,5 @@
+require("dotenv").config();
+
 const bcrypt = require("bcryptjs");
 const nodemailer = require("nodemailer");
 const sendgridTransport = require("nodemailer-sendgrid-transport");
@@ -22,7 +24,7 @@ function generateJWT(userId) {
 
 exports.postRegister = async (req, res, next) => {
   try {
-    const { firstname, lastname, email, phoneno, password } = req.body;
+    const {firstname, lastname, email, phoneno, password } = req.body;
 
     const [userResults] = await getUserDataByPhoneNo(phoneno);
     // const userData = (userResults ?? [])[0] ?? {};

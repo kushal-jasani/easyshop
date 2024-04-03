@@ -9,7 +9,6 @@ exports.sendHttpResponse = async (req, res, next, ApiResponse) => {
             return res.status(ApiResponse.statusCode || 200).json(ApiResponse).end();
         }
     }
-
     res.json(ApiResponse).end();
 };
 
