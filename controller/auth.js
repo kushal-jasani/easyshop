@@ -4,11 +4,14 @@ const bcrypt = require("bcryptjs");
 const nodemailer = require("nodemailer");
 const sendgridTransport = require("nodemailer-sendgrid-transport");
 const jwt = require("jsonwebtoken");
+const multer = require("multer");
+const cloudinary = require("cloudinary").v2;
 
 const { generateResponse, sendHttpResponse } = require("../helper/response");
 const {
   getUserDataByPhoneNo,
-  insertUser,
+  insertCustomer,
+  insertBusinessDetails,
   findPasswordOfUser,
   updateUserPassword,
   getUserByEmail,
@@ -19,18 +22,45 @@ const {
 } = require("../repository/auth");
 
 function generateJWT(userId) {
-  return jwt.sign({ userId },process.env.JWT_SECRET, { expiresIn: "2h" });
+  return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: "2h" });
 }
 
 exports.postRegister = async (req, res, next) => {
   try {
-    const {firstname, lastname, email, phoneno, password } = req.body;
+    const {
+      role,
+      firstname,
+      lastname,
+      email,
+      phoneno,
+      password,
+      bName,
+      bLogo,
+      category,
+      subcategory,
+      city,
+      state,
+      address,
+      aadharphoto,
+      aadharno,
+    } = req.body;
 
-    const [userResults] = await getUserDataByPhoneNo(phoneno);
-    // const userData = (userResults ?? [])[0] ?? {};
-    const user = userResults[0];
+    if (role !== 1 && role !== 2) {
+      return sendHttpResponse(
+        req,
+        res,
+        next,
+        generateResponse({
+          status: "error",
+          statusCode: 400,
+          msg: "Invalid role",
+        })
+      );
+    }
 
-    if (user.length) {
+    let [userResults] = await getUserDataByPhoneNo(phoneno);
+
+    if (userResults.length > 0) {
       return sendHttpResponse(
         req,
         res,
@@ -44,20 +74,46 @@ exports.postRegister = async (req, res, next) => {
       // res.status(400).json({ error: "User already exist" });
     }
 
+    let imageUrl;
+    if (req.file) {
+      const image = await cloudinary.uploader.upload(req.file.path, {
+        folder: "user-images",
+      });
+      imageUrl = image.secure_url;
+    }
     const hashedPassword = await bcrypt.hash(password, 8);
-    // jwt.sign()
-    insertUser(firstname, lastname, email, phoneno, hashedPassword);
-    // const token = generateJWT(user.id);
+
+    [userResults] = await insertCustomer(
+      firstname,
+      lastname,
+      email,
+      phoneno,
+      hashedPassword,
+      imageUrl,
+      role
+    );
+    const userId = userResults.insertId;
+    if (role == 2) {
+      await insertBusinessDetails(
+        userId,
+        bName,
+        bLogo,
+        category,
+        subcategory,
+        city,
+        state,
+        address,
+        aadharphoto,
+        aadharno
+      );
+    }
     const response = generateResponse({
       statusCode: 201,
       status: "success",
-      msg: "uers created sucessfully",
+      msg: "User created sucessfully",
       data: {
         user: {
-          // userData
-        },
-        token_details: {
-          // token,
+          // data
         },
       },
     });
@@ -242,7 +298,7 @@ exports.resetPasswordLink = async (req, res, next) => {
     const transporter = nodemailer.createTransport(
       sendgridTransport({
         auth: {
-          api_key:process.env.SENDGRID_API,
+          api_key: process.env.SENDGRID_API,
         },
       })
     );

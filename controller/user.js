@@ -1,11 +1,16 @@
 const { sendHttpResponse, generateResponse } = require("../helper/response");
 const {
   userDetailsFromId,
+  businessDetailsFromId,
   updateUserDetails,
   getCardDetailsFromUserId,
   insertCardDetails,
   findDuplicateCard,
+  insertAddress,
+  findAddressFromId
 } = require("../repository/user");
+const { use } = require("../routes/auth");
+
 exports.getUserDetails = async (req, res, next) => {
   try {
     const userId = req.user.userId;
@@ -25,6 +30,38 @@ exports.getUserDetails = async (req, res, next) => {
       );
     }
     const user = userResults[0];
+    let userDetails;
+    if (user.role === 2) {
+      const [businessResult] = await businessDetailsFromId(userId);
+      if (businessResult.length == 0) {
+        return sendHttpResponse(
+          req,
+          res,
+          next,
+          generateResponse({
+            status: "error",
+            statusCode: 404,
+            msg: "Business details not found",
+          })
+        );
+      }
+      userDetails = {
+        email: user.email,
+        phoneno: user.phoneno,
+        b_name: businessResult[0].b_name,
+        b_logo: businessResult[0].b_logo,
+        category: businessResult[0].category,
+        subcategory: businessResult[0].subcategory,
+        city: businessResult[0].city,
+        state: businessResult[0].state,
+        country: businessResult[0].country,
+        address: businessResult[0].address,
+        aadhar_photo: businessResult[0].aadhar_photo,
+        aadhar_no: businessResult[0].aadhar_no,
+      };
+    } else {
+      userDetails = user;
+    }
     return sendHttpResponse(
       req,
       res,
@@ -32,11 +69,11 @@ exports.getUserDetails = async (req, res, next) => {
       generateResponse({
         statusCode: 200,
         status: "success",
-        data: { user },
+        data: { userDetails },
         msg: "data retrived successfully",
       })
     );
-  } catch {
+  } catch (error) {
     return sendHttpResponse(
       req,
       res,
@@ -164,7 +201,7 @@ exports.postCardsDetails = async (req, res, next) => {
         generateResponse({
           status: "error",
           statusCode: 400,
-          msg: "Entered expiry date is invalid,Enter in MM/YY format",
+          msg: "Entered expiry date is invalid,Enter in MM/YY format😓",
         })
       );
     }
@@ -177,21 +214,23 @@ exports.postCardsDetails = async (req, res, next) => {
         generateResponse({
           status: "error",
           statusCode: 400,
-          msg: "The card has expired",
+          msg: "The card has expired❗️",
         })
       );
     }
 
-    const [existingCards]=await findDuplicateCard(card_num);
-    if(existingCards.length>0){
-      return sendHttpResponse(req,
+    const [existingCards] = await findDuplicateCard(card_num,userId);
+    if (existingCards.length > 0) {
+      return sendHttpResponse(
+        req,
         res,
         next,
         generateResponse({
           status: "error",
           statusCode: 400,
-          msg: "Card with given number is already added",
-        }))
+          msg: "Card with given number is already added😪",
+        })
+      );
     }
     await insertCardDetails(userId, card_num, holder_name, expiry, cvv);
 
@@ -203,11 +242,58 @@ exports.postCardsDetails = async (req, res, next) => {
         statusCode: 200,
         status: "success",
         data: { card: { card_num, holder_name } },
-        msg: "card added successfully",
+        msg: "card added successfully✅",
       })
     );
   } catch (error) {
     console.log("error while adding cards:", error);
+    return sendHttpResponse(
+      req,
+      res,
+      next,
+      generateResponse({
+        status: "error",
+        statusCode: 500,
+        msg: "internal server error",
+      })
+    );
+  }
+};
+
+exports.getAddressDetails = async (req, res, next) => {
+  try{
+    const userId=req.user.userId;
+
+    const [addressDetails]=await findAddressFromId(userId);
+
+    if(addressDetails.length==0){
+      return sendHttpResponse(req,res,next,generateResponse({status:'error',statusCode:404,msg:'no address has been added by you yet!!'}))
+    }
+
+    return sendHttpResponse(req,res,next,generateResponse({statusCode:200,status:'success',data:{addressDetails},msg:'address fetched successfully🥳'}))
+
+  }
+  catch(error){
+    console.log("error while fetching address",error);
+    return sendHttpResponse(req,res,next,generateResponse({status:'error',statusCode:'500',msg:'Internal server error'}))
+  }
+};
+
+exports.postAddressDetails = async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+    const { type, address, city, state, country, zip } = req.body;
+
+    await insertAddress(userId,type,address, city, state, country, zip);
+
+    return sendHttpResponse(req,res,next,generateResponse({
+      statusCode:201,
+      status:'success',
+      msg:"address added successfully✅"
+    }))
+
+  } catch (error) {
+    console.log("error while adding address", error);
     return sendHttpResponse(
       req,
       res,

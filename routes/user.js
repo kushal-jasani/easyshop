@@ -8,4 +8,7 @@ router.post('/userprofile/',isAuth,usercontroller.postUpdateDetails);
 router.get('/userprofile/cards',isAuth,usercontroller.getCardsDetails);
 router.post('/userprofile/cards',isAuth,usercontroller.postCardsDetails);
 
+router.get('/userprofile/address',isAuth,usercontroller.getAddressDetails);
+router.post('/userprofile/address',isAuth,usercontroller.postAddressDetails);
+
 module.exports=router

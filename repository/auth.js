@@ -5,12 +5,14 @@ const getUserDataByPhoneNo = async (phoneno) => {
   return await db.query("select * from users where phoneno = ?", [phoneno]);
 };
 
-const insertUser = async (
+const insertCustomer = async (
   firstname,
   lastname,
   email,
   phoneno,
-  hashedPassword
+  hashedPassword,
+  imageUrl,
+  role
 ) => {
   return await db.query("insert into users set ?", {
     firstname: firstname,
@@ -18,8 +20,34 @@ const insertUser = async (
     email: email,
     phoneno: phoneno,
     password: hashedPassword,
+    image:imageUrl,
+    role:role
   });
 };
+
+const insertBusinessDetails=async(insertId,bName,
+  bLogo,
+  category,
+  subcategory,
+  city,
+  state,
+  address,
+  aadharphoto,
+  aadharno)=>{
+    return await db.query('insert into business set ?',{
+      userid:insertId,
+      b_Name:bName,
+      b_Logo:bLogo,
+      category:category,
+      subcategory:subcategory,
+      city:city,
+      state:state,
+      address:address,
+      aadhar_photo:aadharphoto,
+      aadhar_no:aadharno
+    })
+  }
+
 
 const findPasswordOfUser = async (userId) => {
   return await db.query("select password from users where id = ?", [userId]);
@@ -69,7 +97,8 @@ const updatePasswordAndToken=async(hashedNewPassword,userId)=>{
 
 module.exports = {
   getUserDataByPhoneNo,
-  insertUser,
+  insertCustomer,
+  insertBusinessDetails,
   findPasswordOfUser,
   updateUserPassword,
   getUserByEmail,
