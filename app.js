@@ -39,4 +39,4 @@ app.use((req, res, next) => {
 app.use('/auth',authroutes);
 
 app.use(userrotues);
-app.listen(3000);
+app.listen(process.env.PORT);
