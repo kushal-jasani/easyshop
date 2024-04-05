@@ -284,7 +284,7 @@ exports.postLogin = async (req, res, next) => {
 
     const [userResults] = await getUserDataByPhoneNo(phoneno);
     const user = userResults[0];
-    if (user.length) {
+    if (!user) {
       return sendHttpResponse(
         req,
         res,
