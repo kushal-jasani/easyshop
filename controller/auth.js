@@ -424,7 +424,7 @@ exports.postChangePassword = async (req, res, next) => {
     const currentPassword = req.body.currentPassword;
     const newPassword = req.body.newPassword;
     const confirmPassword = req.body.confirmPassword;
-    const userId = req.body.userId;
+    const userId = req.user.userId;
 
     const dbPassword = await findPasswordOfUser(userId);
 
