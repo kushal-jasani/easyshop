@@ -1,5 +1,6 @@
 const express = require("express");
 const cloudinary = require("cloudinary").v2;
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
 const multer = require("multer");
 const app = express();
 const path = require("path");
@@ -10,23 +11,23 @@ const bodyparser = require("body-parser");
 
 require("dotenv").config();
 
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, "uploads/");
-  },
-  filename: function (req, file, cb) {
-    cb(null, file.originalname);
-  },
-});
-const upload = multer({ dest: "images/" });
+app.use(bodyparser.urlencoded({ extended: true }));
+app.use(bodyparser.json());
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
+  secure: true,
 });
-
-app.use(bodyparser.json());
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: "easyshop",
+    allowed_formats: ["jpg", "jpeg", "png"],
+  },
+});
+app.use(multer({ storage: storage }).single("image"));
 
 app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -34,17 +35,8 @@ app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Headers", "Content-Type,Authorization");
   next();
 });
-app.set("view engine", "ejs");
-app.set("views", "views");
-app.use(authroutes);
 
-app.post('/upload', upload.single('image'), (req, res) => {
-  const file = req.file;
-  if (!file) {
-    return res.status(400).send('No file uploaded');
-  }
-  res.send('File uploaded successfully');
-});
+app.use('/auth',authroutes);
 
 app.use(userrotues);
 app.listen(3000);

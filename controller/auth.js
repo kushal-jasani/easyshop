@@ -1,11 +1,12 @@
 require("dotenv").config();
 
+const otpless = require("otpless-node-js-auth-sdk");
 const bcrypt = require("bcryptjs");
 const nodemailer = require("nodemailer");
 const sendgridTransport = require("nodemailer-sendgrid-transport");
 const jwt = require("jsonwebtoken");
-const multer = require("multer");
-const cloudinary = require("cloudinary").v2;
+const clientId = process.env.OTPLESS_CLIENTID;
+const clientSecret = process.env.OTPLESS_CLIETSECRET;
 
 const { generateResponse, sendHttpResponse } = require("../helper/response");
 const {
@@ -25,15 +26,47 @@ function generateJWT(userId) {
   return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: "2h" });
 }
 
-exports.postRegister = async (req, res, next) => {
+exports.resendOtp = async (req, res, next) => {
+  const { otpid } = req.body;
+  try {
+    const response = await otpless.resendOTP(otpid, clientId, clientSecret);
+    if (response.success === false) {
+      return sendHttpResponse(
+        req,
+        res,
+        next,
+        generateResponse({
+          status: "error",
+          statusCode: 400,
+          msg: response.errorMessage,
+        })
+      );
+    }
+    const newotpId=response.orderId;
+    return sendHttpResponse(req,res,next,generateResponse({
+      statusCode:200,
+      status:'success',
+      data:{
+        otpid:newotpId
+      },
+      msg:'otp resent successfully✅'
+    }))
+  } catch(error) {
+    console.log(error);
+    return sendHttpResponse(req,res,next,generateResponse({status:'error',statusCode:500,msg:'internal server error'}))
+  }
+};
+exports.varifyOtpRegister = async (req, res, next) => {
   try {
     const {
       role,
       firstname,
       lastname,
       email,
+      country_code,
       phoneno,
-      password,
+      hashedPassword,
+      imageUrl,
       bName,
       bLogo,
       category,
@@ -43,50 +76,37 @@ exports.postRegister = async (req, res, next) => {
       address,
       aadharphoto,
       aadharno,
+      otpid,
+      enteredotp,
     } = req.body;
 
-    if (role !== 1 && role !== 2) {
+    const phonewithcountrycode = country_code + phoneno;
+    const varificationresponse = await otpless.verifyOTP(
+      "",
+      phonewithcountrycode,
+      otpid,
+      enteredotp,
+      clientId,
+      clientSecret
+    );
+    if (varificationresponse.success === false) {
       return sendHttpResponse(
         req,
         res,
         next,
         generateResponse({
+          statusCode: 404,
           status: "error",
-          statusCode: 400,
-          msg: "Invalid role",
+          msg: "entered otp is wrong,please try again😓",
         })
       );
     }
-
-    let [userResults] = await getUserDataByPhoneNo(phoneno);
-
-    if (userResults.length > 0) {
-      return sendHttpResponse(
-        req,
-        res,
-        next,
-        generateResponse({
-          statusCode: 400,
-          status: "error",
-          msg: "User already exists",
-        })
-      );
-      // res.status(400).json({ error: "User already exist" });
-    }
-
-    let imageUrl;
-    if (req.file) {
-      const image = await cloudinary.uploader.upload(req.file.path, {
-        folder: "user-images",
-      });
-      imageUrl = image.secure_url;
-    }
-    const hashedPassword = await bcrypt.hash(password, 8);
 
     [userResults] = await insertCustomer(
       firstname,
       lastname,
       email,
+      country_code,
       phoneno,
       hashedPassword,
       imageUrl,
@@ -107,18 +127,16 @@ exports.postRegister = async (req, res, next) => {
         aadharno
       );
     }
-    const response = generateResponse({
-      statusCode: 201,
-      status: "success",
-      msg: "User created sucessfully",
-      data: {
-        user: {
-          // data
-        },
-      },
-    });
-
-    return sendHttpResponse(req, res, next, response);
+    return sendHttpResponse(
+      req,
+      res,
+      next,
+      generateResponse({
+        statusCode: 201,
+        status: "success",
+        msg: "User registerd successfully✅",
+      })
+    );
   } catch (error) {
     console.log(error);
     return sendHttpResponse(
@@ -128,7 +146,132 @@ exports.postRegister = async (req, res, next) => {
       generateResponse({
         status: "error",
         statusCode: 500,
-        msg: "Error while generating response",
+        msg: "internal server error",
+      })
+    );
+  }
+};
+
+exports.postRegister = async (req, res, next) => {
+  try {
+    const {
+      role,
+      firstname,
+      lastname,
+      email,
+      phoneno,
+      password,
+      country_code,
+      bName,
+      bLogo,
+      category,
+      subcategory,
+      city,
+      state,
+      address,
+      aadharphoto,
+      aadharno,
+    } = req.body;
+
+    if (parseInt(role) !== 1 && parseInt(role) !== 2) {
+      return sendHttpResponse(
+        req,
+        res,
+        next,
+        generateResponse({
+          status: "error",
+          statusCode: 400,
+          msg: "Invalid role❌",
+        })
+      );
+    }
+
+    let [userResults] = await getUserDataByPhoneNo(phoneno);
+
+    if (userResults.length > 0) {
+      return sendHttpResponse(
+        req,
+        res,
+        next,
+        generateResponse({
+          statusCode: 400,
+          status: "error",
+          msg: "User already exists👀",
+        })
+      );
+    }
+
+    // if (!req.file) {
+    //   console.log("file not found");
+    //   return;
+    // }
+    const imageUrl = req.file.path;
+    const phonewithcountrycode = country_code + phoneno;
+    const hashedPassword = await bcrypt.hash(password, 8);
+    const response = await otpless.sendOTP(
+      phonewithcountrycode,
+      "",
+      "SMS",
+      "",
+      "",
+      60,
+      4,
+      clientId,
+      clientSecret
+    );
+    if (response.success === false) {
+      return sendHttpResponse(
+        req,
+        res,
+        next,
+        generateResponse({
+          statusCode: 400,
+          status: "error",
+          msg: "Failed to generate OTP❌",
+        })
+      );
+    } else {
+      return sendHttpResponse(
+        req,
+        res,
+        next,
+        generateResponse({
+          statusCode: 201,
+          status: "success",
+          msg: "Otp sent successfully on given mobile number🚀",
+          data: {
+            role: role,
+            firstname: firstname,
+            lastname: lastname,
+            email: email,
+            password: hashedPassword,
+            image: imageUrl,
+            bName: bName,
+            bLogo: bLogo,
+            category: category,
+            subcategory: subcategory,
+            city: city,
+            state: state,
+            address: address,
+            aadharphoto: aadharphoto,
+            aadharno: aadharno,
+            country_code,
+            phoneno: phoneno,
+            otpid: response.orderId,
+          },
+        })
+      );
+    }
+  } catch (error) {
+    console.log("error while registering user",error);
+    return sendHttpResponse(
+      req,
+      res,
+      next,
+      generateResponse({
+        status: "error",
+        statusCode: 500,
+        msg: "internal server error",
       })
     );
   }
@@ -136,10 +279,10 @@ exports.postRegister = async (req, res, next) => {
 
 exports.postLogin = async (req, res, next) => {
   try {
-    const { phoneno } = req.body;
+    const { country_code, phoneno } = req.body;
+    const phonewithcountrycode = country_code + phoneno;
 
     const [userResults] = await getUserDataByPhoneNo(phoneno);
-    // console.log(userResults);
     const user = userResults[0];
     if (user.length) {
       return sendHttpResponse(
@@ -149,16 +292,35 @@ exports.postLogin = async (req, res, next) => {
         generateResponse({
           statusCode: 404,
           status: "error",
-          msg: "user with given phone number is not registered already",
+          msg: "user with given phone number is not registered already❌",
         })
       );
     }
-    let otp = "1234";
-    const { enteredotp } = req.body;
-    if (otp == enteredotp) {
-      // console.log(user.id)
-      const token = generateJWT(user.id);
-      // console.log(token)
+
+    const response = await otpless.sendOTP(
+      phonewithcountrycode,
+      "",
+      "SMS",
+      "",
+      "",
+      60,
+      4,
+      clientId,
+      clientSecret
+    );
+    if (response.success === false) {
+      return sendHttpResponse(
+        req,
+        res,
+        next,
+        generateResponse({
+          statusCode: 400,
+          status: "error",
+          msg: "Failed to generate OTP❗️",
+        })
+      );
+    } else {
+      const otpid = response.orderId;
       return sendHttpResponse(
         req,
         res,
@@ -166,21 +328,12 @@ exports.postLogin = async (req, res, next) => {
         generateResponse({
           statusCode: 200,
           status: "success",
-          msg: "loggedin successfully",
           data: {
-            token,
+            country_code: country_code,
+            phoneno: phoneno,
+            otpid: otpid,
           },
-        })
-      );
-    } else {
-      return sendHttpResponse(
-        req,
-        res,
-        next,
-        generateResponse({
-          statusCode: 404,
-          status: "error",
-          msg: "entered otp is wrong,please try again",
+          msg: "Otp sent on this number successfully🚀",
         })
       );
     }
@@ -193,7 +346,74 @@ exports.postLogin = async (req, res, next) => {
       generateResponse({
         status: "error",
         statusCode: 500,
-        msg: "Error while generating response",
+        msg: "internal server error",
+      })
+    );
+  }
+};
+
+exports.varifyOtpLogin = async (req, res, next) => {
+  try {
+    const { country_code, phoneno, otpid, enteredotp } = req.body;
+    const [userResults] = await getUserDataByPhoneNo(phoneno);
+    const user = userResults[0];
+    const phonewithcountrycode = country_code + phoneno;
+    const varificationresponse = await otpless.verifyOTP(
+      "",
+      phonewithcountrycode,
+      otpid,
+      enteredotp,
+      clientId,
+      clientSecret
+    );
+    if (varificationresponse.success === false) {
+      if (varificationresponse.isOTPVerified === false) {
+        return sendHttpResponse(
+          req,
+          res,
+          next,
+          generateResponse({
+            statusCode: 404,
+            status: "error",
+            msg: varificationresponse.errorMessage,
+          })
+        );
+      }
+      return sendHttpResponse(
+        req,
+        res,
+        next,
+        generateResponse({
+          statusCode: 404,
+          status: "error",
+          msg: "entered otp is wrong,please try again😓",
+        })
+      );
+    }
+    const token = generateJWT(user.id);
+    return sendHttpResponse(
+      req,
+      res,
+      next,
+      generateResponse({
+        statusCode: 200,
+        status: "success",
+        msg: "You're loggedin successfully🥳",
+        data: {
+          JWTToken: token,
+        },
+      })
+    );
+  } catch (error) {
+    console.log("error while login", error);
+    return sendHttpResponse(
+      req,
+      res,
+      next,
+      generateResponse({
+        status: "error",
+        statusCode: 500,
+        msg: "internal server error",
       })
     );
   }
@@ -223,7 +443,7 @@ exports.postChangePassword = async (req, res, next) => {
             generateResponse({
               status: "error",
               statusCode: 400,
-              msg: "new password and confirm password is not matching",
+              msg: "new password and confirm password is not matching😓",
             })
           );
         }
@@ -236,7 +456,7 @@ exports.postChangePassword = async (req, res, next) => {
           generateResponse({
             statusCode: 200,
             status: "success",
-            msg: "password changed successfully",
+            msg: "password changed successfully✅",
           })
         );
       } else {
@@ -247,13 +467,13 @@ exports.postChangePassword = async (req, res, next) => {
           generateResponse({
             status: "error",
             statusCode: 400,
-            msg: "entered current password is incorrect",
+            msg: "entered current password is incorrect🚨",
           })
         );
       }
     }
   } catch (error) {
-    console.log(error);
+    console.log("error while changing password",error);
     return sendHttpResponse(
       req,
       res,
@@ -261,7 +481,7 @@ exports.postChangePassword = async (req, res, next) => {
       generateResponse({
         status: "error",
         statusCode: 500,
-        msg: "error while changing password",
+        msg: "internal server error",
       })
     );
   }
@@ -280,7 +500,7 @@ exports.resetPasswordLink = async (req, res, next) => {
         generateResponse({
           status: "error",
           statusCode: 404,
-          msg: "user not found",
+          msg: "user not found❗️",
         })
       );
     }
@@ -321,7 +541,7 @@ exports.resetPasswordLink = async (req, res, next) => {
       })
     );
   } catch (error) {
-    console.log(error);
+    console.log("error whie reseting password",error);
     sendHttpResponse(
       req,
       res,
@@ -329,7 +549,7 @@ exports.resetPasswordLink = async (req, res, next) => {
       generateResponse({
         status: "error",
         statusCode: 500,
-        msg: "error whie reseting password",
+        msg: "internal server error",
       })
     );
   }
@@ -352,7 +572,7 @@ exports.postResetPassword = async (req, res, next) => {
         generateResponse({
           status: "error",
           statusCode: 404,
-          msg: "Invalid or expired token",
+          msg: "Invalid or expired token❌",
         })
       );
     }
@@ -369,7 +589,7 @@ exports.postResetPassword = async (req, res, next) => {
         generateResponse({
           status: "error",
           statusCode: 404,
-          msg: "Invalid token or expired",
+          msg: "Invalid token or expired❌",
         })
       );
     }
@@ -386,7 +606,7 @@ exports.postResetPassword = async (req, res, next) => {
       })
     );
   } catch {
-    console.log(error);
+    console.log("error whie reseting password",error);
     sendHttpResponse(
       req,
       res,
@@ -394,7 +614,7 @@ exports.postResetPassword = async (req, res, next) => {
       generateResponse({
         status: "error",
         statusCode: 500,
-        msg: "error whie reseting password",
+        msg: "internal server error",
       })
     );
   }

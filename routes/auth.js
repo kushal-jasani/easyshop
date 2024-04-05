@@ -5,11 +5,16 @@ const authcontroller = require("../controller/auth");
 const {isAuth}=require('../middleware/is-auth')
 const router = express.Router();
 
-router.post("/auth/login", authcontroller.postLogin);
-router.post("/auth/register", authcontroller.postRegister);
-router.post('/auth/changepassword',isAuth,authcontroller.postChangePassword)
-router.post('/auth/resetpassword',isAuth,authcontroller.resetPasswordLink)
-router.post('/auth/resetpassword/:resettoken',isAuth,authcontroller.postResetPassword)
+router.post("/login", authcontroller.postLogin);
+router.post("/login/verify-otp", authcontroller.varifyOtpLogin);
+router.post("/resendOtp", authcontroller.resendOtp);
+
+router.post("/register", authcontroller.postRegister);
+router.post("/register/verify-otp", authcontroller.varifyOtpRegister);
+
+router.post('/changepassword',isAuth,authcontroller.postChangePassword)
+router.post('/resetpassword',isAuth,authcontroller.resetPasswordLink)
+router.post('/resetpassword/:resettoken',isAuth,authcontroller.postResetPassword)
 
 
 module.exports = router;

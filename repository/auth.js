@@ -9,6 +9,7 @@ const insertCustomer = async (
   firstname,
   lastname,
   email,
+  country_code,
   phoneno,
   hashedPassword,
   imageUrl,
@@ -18,14 +19,17 @@ const insertCustomer = async (
     firstname: firstname,
     lastname: lastname,
     email: email,
+    country_code: country_code,
     phoneno: phoneno,
     password: hashedPassword,
-    image:imageUrl,
-    role:role
+    image: imageUrl,
+    role: role,
   });
 };
 
-const insertBusinessDetails=async(insertId,bName,
+const insertBusinessDetails = async (
+  insertId,
+  bName,
   bLogo,
   category,
   subcategory,
@@ -33,21 +37,21 @@ const insertBusinessDetails=async(insertId,bName,
   state,
   address,
   aadharphoto,
-  aadharno)=>{
-    return await db.query('insert into business set ?',{
-      userid:insertId,
-      b_Name:bName,
-      b_Logo:bLogo,
-      category:category,
-      subcategory:subcategory,
-      city:city,
-      state:state,
-      address:address,
-      aadhar_photo:aadharphoto,
-      aadhar_no:aadharno
-    })
-  }
-
+  aadharno
+) => {
+  return await db.query("insert into business set ?", {
+    userid: insertId,
+    b_Name: bName,
+    b_Logo: bLogo,
+    category: category,
+    subcategory: subcategory,
+    city: city,
+    state: state,
+    address: address,
+    aadhar_photo: aadharphoto,
+    aadhar_no: aadharno,
+  });
+};
 
 const findPasswordOfUser = async (userId) => {
   return await db.query("select password from users where id = ?", [userId]);
@@ -88,12 +92,15 @@ const addTokenToUser = async (resettoken, resettokenexpiry, email) => {
 };
 
 const getUserFromToken = async (resettoken) => {
-  return await db.query("select * from users where resettoken=?",[resettoken]);
+  return await db.query("select * from users where resettoken=?", [resettoken]);
 };
 
-const updatePasswordAndToken=async(hashedNewPassword,userId)=>{
-  return await db.query("update users set password=?,resettoken=NULL where id=?",[hashedNewPassword,userId])
-}
+const updatePasswordAndToken = async (hashedNewPassword, userId) => {
+  return await db.query(
+    "update users set password=?,resettoken=NULL where id=?",
+    [hashedNewPassword, userId]
+  );
+};
 
 module.exports = {
   getUserDataByPhoneNo,
@@ -105,5 +112,5 @@ module.exports = {
   generateToken,
   addTokenToUser,
   getUserFromToken,
-  updatePasswordAndToken
+  updatePasswordAndToken,
 };

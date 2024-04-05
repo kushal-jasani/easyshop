@@ -9,10 +9,10 @@ const {
   insertAddress,
   findAddressFromId
 } = require("../repository/user");
-const { use } = require("../routes/auth");
 
 exports.getUserDetails = async (req, res, next) => {
   try {
+   
     const userId = req.user.userId;
 
     const [userResults] = await userDetailsFromId(userId);
@@ -25,7 +25,7 @@ exports.getUserDetails = async (req, res, next) => {
         generateResponse({
           status: "error",
           statusCode: 404,
-          msg: "no user found",
+          msg: "no user found😓",
         })
       );
     }
@@ -41,7 +41,7 @@ exports.getUserDetails = async (req, res, next) => {
           generateResponse({
             status: "error",
             statusCode: 404,
-            msg: "Business details not found",
+            msg: "Business details not found❌",
           })
         );
       }
@@ -70,7 +70,7 @@ exports.getUserDetails = async (req, res, next) => {
         statusCode: 200,
         status: "success",
         data: { userDetails },
-        msg: "data retrived successfully",
+        msg: "data retrived successfully✅",
       })
     );
   } catch (error) {
@@ -112,7 +112,7 @@ exports.postUpdateDetails = async (req, res, next) => {
       generateResponse({
         statusCode: 200,
         status: "success",
-        msg: "user data updated successfully",
+        msg: "user data updated successfully ⚡️",
       })
     );
   } catch (error) {
@@ -142,7 +142,7 @@ exports.getCardsDetails = async (req, res, next) => {
         generateResponse({
           status: "error",
           statusCode: 404,
-          msg: "No cards has been added by you yet",
+          msg: "No cards has been added by you yet👀",
         })
       );
     }
