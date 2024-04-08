@@ -1,5 +1,4 @@
 require("dotenv").config();
-
 const otpless = require("otpless-node-js-auth-sdk");
 const bcrypt = require("bcryptjs");
 const nodemailer = require("nodemailer");
@@ -22,6 +21,8 @@ const {
   updatePasswordAndToken,
 } = require("../repository/auth");
 
+const {loginSchema,registerSchema, changePasswordSchema, resetPasswordSchema, postResetPasswordSchema} =require('../helper/validation_schema')
+
 function generateJWT(userId) {
   return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: "2h" });
 }
@@ -42,18 +43,32 @@ exports.resendOtp = async (req, res, next) => {
         })
       );
     }
-    const newotpId=response.orderId;
-    return sendHttpResponse(req,res,next,generateResponse({
-      statusCode:200,
-      status:'success',
-      data:{
-        otpid:newotpId
-      },
-      msg:'otp resent successfully✅'
-    }))
-  } catch(error) {
+    const newotpId = response.orderId;
+    return sendHttpResponse(
+      req,
+      res,
+      next,
+      generateResponse({
+        statusCode: 200,
+        status: "success",
+        data: {
+          otpid: newotpId,
+        },
+        msg: "otp resent successfully✅",
+      })
+    );
+  } catch (error) {
     console.log(error);
-    return sendHttpResponse(req,res,next,generateResponse({status:'error',statusCode:500,msg:'internal server error'}))
+    return sendHttpResponse(
+      req,
+      res,
+      next,
+      generateResponse({
+        status: "error",
+        statusCode: 500,
+        msg: "internal server error",
+      })
+    );
   }
 };
 exports.varifyOtpRegister = async (req, res, next) => {
@@ -68,7 +83,6 @@ exports.varifyOtpRegister = async (req, res, next) => {
       hashedPassword,
       imageUrl,
       bName,
-      bLogo,
       category,
       subcategory,
       city,
@@ -117,7 +131,6 @@ exports.varifyOtpRegister = async (req, res, next) => {
       await insertBusinessDetails(
         userId,
         bName,
-        bLogo,
         category,
         subcategory,
         city,
@@ -154,6 +167,19 @@ exports.varifyOtpRegister = async (req, res, next) => {
 
 exports.postRegister = async (req, res, next) => {
   try {
+    const { error } = registerSchema.validate(req.body);
+    if (error) {
+      return sendHttpResponse(
+        req,
+        res,
+        next,
+        generateResponse({
+          status: "error",
+          statusCode: 400,
+          msg: error.details[0].message,
+        })
+      );
+    }
     const {
       role,
       firstname,
@@ -163,7 +189,6 @@ exports.postRegister = async (req, res, next) => {
       password,
       country_code,
       bName,
-      bLogo,
       category,
       subcategory,
       city,
@@ -186,6 +211,10 @@ exports.postRegister = async (req, res, next) => {
       );
     }
 
+    if (parseInt(role)==2 && !req.file) {
+      return sendHttpResponse(req,res,next,generateResponse({status:"error",statusCode:404,msg:'For businesses,business logo is required'}))
+    }
+
     let [userResults] = await getUserDataByPhoneNo(phoneno);
 
     if (userResults.length > 0) {
@@ -201,11 +230,9 @@ exports.postRegister = async (req, res, next) => {
       );
     }
 
-    // if (!req.file) {
-    //   console.log("file not found");
-    //   return;
-    // }
-    const imageUrl = req.file.path;
+
+    let imageUrl = req.file.path||null;
+    
     const phonewithcountrycode = country_code + phoneno;
     const hashedPassword = await bcrypt.hash(password, 8);
     const response = await otpless.sendOTP(
@@ -247,7 +274,6 @@ exports.postRegister = async (req, res, next) => {
             password: hashedPassword,
             image: imageUrl,
             bName: bName,
-            bLogo: bLogo,
             category: category,
             subcategory: subcategory,
             city: city,
@@ -263,7 +289,7 @@ exports.postRegister = async (req, res, next) => {
       );
     }
   } catch (error) {
-    console.log("error while registering user",error);
+    console.log("error while registering user", error);
     return sendHttpResponse(
       req,
       res,
@@ -279,6 +305,19 @@ exports.postRegister = async (req, res, next) => {
 
 exports.postLogin = async (req, res, next) => {
   try {
+    const { error } = loginSchema.validate(req.body);
+    if (error) {
+      return sendHttpResponse(
+        req,
+        res,
+        next,
+        generateResponse({
+          status: "error",
+          statusCode: 400,
+          msg: error.details[0].message,
+        })
+      );
+    }
     const { country_code, phoneno } = req.body;
     const phonewithcountrycode = country_code + phoneno;
 
@@ -421,6 +460,19 @@ exports.varifyOtpLogin = async (req, res, next) => {
 
 exports.postChangePassword = async (req, res, next) => {
   try {
+    const {error}=changePasswordSchema.validate(req.body)
+    if (error) {
+      return sendHttpResponse(
+        req,
+        res,
+        next,
+        generateResponse({
+          status: "error",
+          statusCode: 400,
+          msg: error.details[0].message,
+        })
+      );
+    }
     const currentPassword = req.body.currentPassword;
     const newPassword = req.body.newPassword;
     const confirmPassword = req.body.confirmPassword;
@@ -473,7 +525,7 @@ exports.postChangePassword = async (req, res, next) => {
       }
     }
   } catch (error) {
-    console.log("error while changing password",error);
+    console.log("error while changing password", error);
     return sendHttpResponse(
       req,
       res,
@@ -490,6 +542,19 @@ exports.postChangePassword = async (req, res, next) => {
 exports.resetPasswordLink = async (req, res, next) => {
   try {
     const { email } = req.body;
+    const {error}=resetPasswordSchema.validate(req.body);
+    if (error) {
+      return sendHttpResponse(
+        req,
+        res,
+        next,
+        generateResponse({
+          status: "error",
+          statusCode: 400,
+          msg: error.details[0].message,
+        })
+      );
+    }
     const [userResults] = await getUserByEmail(email);
     const user = userResults[0];
     if (!user) {
@@ -541,7 +606,7 @@ exports.resetPasswordLink = async (req, res, next) => {
       })
     );
   } catch (error) {
-    console.log("error whie reseting password",error);
+    console.log("error whie reseting password", error);
     sendHttpResponse(
       req,
       res,
@@ -560,7 +625,19 @@ exports.postResetPassword = async (req, res, next) => {
     const { resettoken } = req.params;
 
     const { newPassword } = req.body;
-
+    const {error}=postResetPasswordSchema.validate(req.body);
+    if (error) {
+      return sendHttpResponse(
+        req,
+        res,
+        next,
+        generateResponse({
+          status: "error",
+          statusCode: 400,
+          msg: error.details[0].message,
+        })
+      );
+    }
     const [userresults] = await getUserFromToken(resettoken);
     const user = userresults[0];
 
@@ -606,7 +683,7 @@ exports.postResetPassword = async (req, res, next) => {
       })
     );
   } catch {
-    console.log("error whie reseting password",error);
+    console.log("error whie reseting password", error);
     sendHttpResponse(
       req,
       res,

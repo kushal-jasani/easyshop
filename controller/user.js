@@ -48,6 +48,7 @@ exports.getUserDetails = async (req, res, next) => {
       userDetails = {
         email: user.email,
         phoneno: user.phoneno,
+        image:businessResult[0].image,
         b_name: businessResult[0].b_name,
         b_logo: businessResult[0].b_logo,
         category: businessResult[0].category,

@@ -9,7 +9,8 @@ const userDetailsFromId = async (userId) => {
 
 const businessDetailsFromId = async (userId) => {
   return await db.query(
-    "select b_name,b_logo,category,subcategory,address,city,state,country,aadhar_photo,aadhar_no from business where userid=?",
+    // "select b_name,b_logo,category,subcategory,address,city,state,country,aadhar_photo,aadhar_no from business where userid=?"
+    "select business.*, users.image FROM business INNER JOIN users ON business.userid = users.id",
     [userId]
   );
 };

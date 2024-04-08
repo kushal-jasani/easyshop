@@ -30,7 +30,6 @@ const insertCustomer = async (
 const insertBusinessDetails = async (
   insertId,
   bName,
-  bLogo,
   category,
   subcategory,
   city,
@@ -42,7 +41,6 @@ const insertBusinessDetails = async (
   return await db.query("insert into business set ?", {
     userid: insertId,
     b_Name: bName,
-    b_Logo: bLogo,
     category: category,
     subcategory: subcategory,
     city: city,
