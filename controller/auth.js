@@ -230,9 +230,11 @@ exports.postRegister = async (req, res, next) => {
       );
     }
 
+    console.log(req.file)
 
-    let imageUrl = req.file.path||null;
+    let imageUrl = req.file ? req.file.path : null;
     
+    console.log(imageUrl)
     const phonewithcountrycode = country_code + phoneno;
     const hashedPassword = await bcrypt.hash(password, 8);
     const response = await otpless.sendOTP(
