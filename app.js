@@ -7,6 +7,8 @@ const path = require("path");
 const db = require("./util/database");
 const authroutes = require("./routes/auth");
 const userrotues = require("./routes/user");
+const productroutes = require("./routes/products");
+
 const bodyparser = require("body-parser");
 
 require("dotenv").config();
@@ -27,7 +29,13 @@ const storage = new CloudinaryStorage({
     allowed_formats: ["jpg", "jpeg", "png"],
   },
 });
-app.use(multer({ storage: storage }).single("image"));
+
+app.use(
+  multer({ storage: storage }).fields([
+    { name: "aadharphoto", maxCount: 1 },
+    { name: "image", maxCount: 1 },
+  ])
+);
 
 app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -36,7 +44,8 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use('/auth',authroutes);
+app.use("/auth", authroutes);
 
 app.use(userrotues);
+app.use(productroutes)
 app.listen(process.env.PORT);

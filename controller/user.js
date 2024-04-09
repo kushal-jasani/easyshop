@@ -9,6 +9,9 @@ const {
   insertAddress,
   findAddressFromId
 } = require("../repository/user");
+const {getUserDataByPhoneNo}=require('../repository/auth')
+const { findRole} = require("../repository/products");
+
 
 exports.getUserDetails = async (req, res, next) => {
   try {
@@ -93,7 +96,71 @@ exports.postUpdateDetails = async (req, res, next) => {
     const userId = req.user.userId;
     const updatedFields = req.body;
 
-    const [results] = await updateUserDetails(updatedFields, userId);
+    const [roleOfCurrentUser] = await findRole(userId);
+    const role=roleOfCurrentUser[0].role;
+
+    const allowedFields = {
+      1: ['firstname', 'lastname', 'email', 'phoneno'],
+      2: ['email', 'phoneno', 'b_name', 'category', 'subcategory', 'city', 'state', 'country', 'address', 'aadhar_photo', 'aadhar_no']
+    };
+
+    if (!allowedFields[role]) {
+      return sendHttpResponse(
+        req,
+        res,
+        next,
+        generateResponse({
+          statusCode: 400,
+          status: "error",
+          msg: "Invalid user role",
+        })
+      );
+    }
+
+
+    if(updatedFields.phoneno){
+
+    let [existingUser] = await getUserDataByPhoneNo(updatedFields.phoneno);
+
+    if (existingUser.length > 0 && existingUser[0].id !== userId) {
+      return sendHttpResponse(
+        req,
+        res,
+        next,
+        generateResponse({
+          statusCode: 400,
+          status: "error",
+          msg: `Can't update..User with this phone number ${updatedFields.phoneno} already exists👀`,
+        })
+      );
+    }
+
+    }
+
+    const disallowedFields = Object.keys(updatedFields).filter(field => !allowedFields[role].includes(field));
+    if (disallowedFields.length > 0) {
+      return sendHttpResponse(
+        req,
+        res,
+        next,
+        generateResponse({
+          statusCode: 400,
+          status: "error",
+          msg: `Updating ${disallowedFields.join(', ')} is not allowed for users with role ${role}`,
+        })
+      );
+    }
+
+    // const filteredFields = Object.keys(updatedFields)
+    // .filter(key => allowedFields[role].includes(key))
+    // .reduce((obj, key) => {
+    //   obj[key] = updatedFields[key];
+    //   return obj;
+    // }, {});
+
+
+    const [results] = await updateUserDetails(updatedFields,userId,role);
+
     if (results.affectedRows == 0) {
       return sendHttpResponse(
         req,
@@ -102,7 +169,7 @@ exports.postUpdateDetails = async (req, res, next) => {
         generateResponse({
           status: "error",
           statusCode: 404,
-          msg: "no user found",
+          msg: "no user found or no changes have be made",
         })
       );
     }

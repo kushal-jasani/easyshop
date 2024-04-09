@@ -15,11 +15,34 @@ const businessDetailsFromId = async (userId) => {
   );
 };
 
-const updateUserDetails = async (updatedFields, userId) => {
-  return await db.query("update users set ? where id=?", [
-    updatedFields,
-    userId,
-  ]);
+const updateUserDetails = async (updatedFields, userId,role) => {
+  if(role==1){
+    return await db.query("update users set ? where id=?", [
+      updatedFields,
+      userId,
+    ]);
+  }
+  else if(role==2){
+    const userTableFields={};
+    const businessTableFields={};
+    
+    for(let field in updatedFields){
+      if(field==="phoneno"||field==="email"){
+        userTableFields[field]=updatedFields[field];
+      }
+      else{
+        businessTableFields[field] = updatedFields[field];
+      }
+    }
+    await db.query("update users set ? where id=?", [
+      userTableFields,
+      userId,
+    ]);
+    return await db.query("update business set ? where userid=?", [
+      businessTableFields,
+      userId,
+    ]);
+  }
 };
 
 const getCardDetailsFromUserId = async (userId) => {

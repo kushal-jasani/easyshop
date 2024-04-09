@@ -82,7 +82,7 @@ exports.varifyOtpRegister = async (req, res, next) => {
       phoneno,
       hashedPassword,
       imageUrl,
-      bName,
+      b_name,
       category,
       subcategory,
       city,
@@ -94,6 +94,7 @@ exports.varifyOtpRegister = async (req, res, next) => {
       enteredotp,
     } = req.body;
 
+
     const phonewithcountrycode = country_code + phoneno;
     const varificationresponse = await otpless.verifyOTP(
       "",
@@ -104,6 +105,18 @@ exports.varifyOtpRegister = async (req, res, next) => {
       clientSecret
     );
     if (varificationresponse.success === false) {
+      if (varificationresponse.isOTPVerified === false) {
+        return sendHttpResponse(
+          req,
+          res,
+          next,
+          generateResponse({
+            statusCode: 404,
+            status: "error",
+            msg: varificationresponse.errorMessage,
+          })
+        );
+      }
       return sendHttpResponse(
         req,
         res,
@@ -130,7 +143,7 @@ exports.varifyOtpRegister = async (req, res, next) => {
     if (role == 2) {
       await insertBusinessDetails(
         userId,
-        bName,
+        b_name,
         category,
         subcategory,
         city,
@@ -188,13 +201,12 @@ exports.postRegister = async (req, res, next) => {
       phoneno,
       password,
       country_code,
-      bName,
+      b_name,
       category,
       subcategory,
       city,
       state,
       address,
-      aadharphoto,
       aadharno,
     } = req.body;
 
@@ -211,7 +223,7 @@ exports.postRegister = async (req, res, next) => {
       );
     }
 
-    if (parseInt(role)==2 && !req.file) {
+    if (parseInt(role)==2 && !req.files['image'][0]) {
       return sendHttpResponse(req,res,next,generateResponse({status:"error",statusCode:404,msg:'For businesses,business logo is required'}))
     }
 
@@ -230,11 +242,14 @@ exports.postRegister = async (req, res, next) => {
       );
     }
 
-    console.log(req.file)
 
-    let imageUrl = req.file ? req.file.path : null;
+    let imageUrl = req.files['image'][0] ? req.files['image'][0].path : null;
+  
+    if(!req.files['aadharphoto'][0]){
+      return sendHttpResponse(req,res,next,generateResponse({status:'error',statusCode:400,msg:'Addhar photo for business is required'}))
+    }
+    const aadharphoto = req.files['aadharphoto'][0].path;
     
-    console.log(imageUrl)
     const phonewithcountrycode = country_code + phoneno;
     const hashedPassword = await bcrypt.hash(password, 8);
     const response = await otpless.sendOTP(
@@ -275,7 +290,7 @@ exports.postRegister = async (req, res, next) => {
             email: email,
             password: hashedPassword,
             image: imageUrl,
-            bName: bName,
+            b_name: b_name,
             category: category,
             subcategory: subcategory,
             city: city,
