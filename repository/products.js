@@ -25,9 +25,44 @@ const productsMainDetails = async () => {
   );
 };
 
+const getCategoryList = async () => {
+  return await db.query(
+    "select id,name,image from category",
+  );
+};
+
+const getProductDetail=async(productId)=>{
+  
+  const query=`SELECT 
+  p.id AS product_id,
+  p.title,
+  p.price,
+  p.description,
+  p.additional_info,
+  (
+		SELECT JSON_ARRAYAGG(JSON_OBJECT('image_url',i.image , 'image_type', i.type))
+		FROM images i
+		WHERE i.product_id = p.id
+	)AS images,
+  (
+  SELECT JSON_ARRAYAGG(JSON_OBJECT('key',s.key , 'value', s.value))
+  FROM specification s
+  WHERE s.product_id = p.id
+)AS specifications
+FROM 
+  products p
+LEFT JOIN 
+  images i ON p.id = i.product_id
+WHERE 
+  p.id = ?;
+`
+  return await db.query(query,[productId])
+}
 module.exports = {
   findRole,
   insertCategory,
   findCategoryOfBusiness,
   productsMainDetails,
+  getCategoryList,
+  getProductDetail
 };

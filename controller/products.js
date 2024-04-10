@@ -4,9 +4,11 @@ const {
   insertCategory,
   findCategoryOfBusiness,
   productsMainDetails,
+  getCategoryList,
+  getProductDetail,
 } = require("../repository/products");
 
-exports.categoryList = async (req, res, next) => {
+exports.categoryListBusiness = async (req, res, next) => {
   try {
     const userId = req.user.userId;
     const [categoryList] = await findCategoryOfBusiness(userId);
@@ -122,28 +124,28 @@ exports.getProducts = async (req, res, next) => {
         res,
         next,
         generateResponse({
-        status: "error",
+          status: "error",
           statusCode: 404,
           msg: "products not found",
         })
       );
     }
     return sendHttpResponse(
-        req,
-        res,
-        next,
-        generateResponse({
-          statusCode: 200,
-          status: "success",
-          data: productResults.map((p) => ({
-            product_id: p.id,
-            title: p.title,
-            price: p.price,
-            image: p.image,
-          })),
-          msg: "product data retrived successfully",
-        })
-      );
+      req,
+      res,
+      next,
+      generateResponse({
+        statusCode: 200,
+        status: "success",
+        data: productResults.map((p) => ({
+          product_id: p.id,
+          title: p.title,
+          price: p.price,
+          image: p.image,
+        })),
+        msg: "product data retrived successfully",
+      })
+    );
   } catch (error) {
     console.log("while fetching products", error);
     return sendHttpResponse(
@@ -154,6 +156,92 @@ exports.getProducts = async (req, res, next) => {
         status: "error",
         statusCode: 500,
         msg: "internal server error while fetching products",
+      })
+    );
+  }
+};
+
+exports.getProductDetail = async (req, res, next) => {
+  try {
+    const productId = req.params.productId;
+
+    const [productDetails] = await getProductDetail(productId);
+
+
+    const formattedResponse = {
+      product_id: productDetails[0].product_id,
+      title: productDetails[0].title,
+      price: productDetails[0].price,
+      description: productDetails[0].description,
+      additional_info: productDetails[0].additional_info,
+      images: productDetails[0].images,
+      specifications: productDetails[0].specifications,
+    };
+
+    return sendHttpResponse(
+      req,
+      res,
+      next,
+      generateResponse({
+        statusCode: 200,
+        status: "success",
+        data: 
+          formattedResponse,
+        msg: "Product details retrived successfully",
+      })
+    );
+  } catch (error) {
+    console.log(error);
+    return sendHttpResponse(
+      req,
+      res,
+      next,
+      generateResponse({
+        status: "error while fetching product details",
+        statusCode: 500,
+        msg: "internal server error while getting product details",
+      })
+    );
+  }
+};
+
+exports.getCategoryListUser = async (req, res, next) => {
+  try {
+    const [categoryList] = await getCategoryList();
+
+    if (!categoryList || categoryList.length == 0) {
+      return sendHttpResponse(
+        req,
+        res,
+        next,
+        generateResponse({
+          status: "error",
+          statusCode: 400,
+          msg: "No category found",
+        })
+      );
+    }
+    return sendHttpResponse(
+      req,
+      res,
+      next,
+      generateResponse({
+        statusCode: 200,
+        status: "success",
+        data: { categoryList },
+        msg: "Category list fetched successfully✅",
+      })
+    );
+  } catch (error) {
+    console.log("error in fectching category list", error);
+    return sendHttpResponse(
+      req,
+      res,
+      next,
+      generateResponse({
+        status: "error",
+        statusCode: 400,
+        msg: "internal server error while fetching category list",
       })
     );
   }

@@ -10,7 +10,10 @@ router.post("/login/verify-otp", authcontroller.varifyOtpLogin);
 router.post("/resendOtp", authcontroller.resendOtp);
 
 router.post("/register", authcontroller.postRegister);
-router.post("/register/verify-otp", authcontroller.varifyOtpRegister);
+// router.post("/register/verify-otp", authcontroller.varifyOtpRegister);
+
+router.post("/register/verify-otp", authcontroller.varifyMasterOtpRegister);
+
 
 router.post('/changepassword',isAuth,authcontroller.postChangePassword)
 router.post('/resetpassword',isAuth,authcontroller.resetPasswordLink)
