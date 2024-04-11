@@ -26,14 +26,11 @@ const productsMainDetails = async () => {
 };
 
 const getCategoryList = async () => {
-  return await db.query(
-    "select id,name,image from category",
-  );
+  return await db.query("select id,name,image from category");
 };
 
-const getProductDetail=async(productId)=>{
-  
-  const query=`SELECT 
+const getProductDetail = async (productId) => {
+  const query = `SELECT 
   p.id AS product_id,
   p.title,
   p.price,
@@ -55,14 +52,33 @@ LEFT JOIN
   images i ON p.id = i.product_id
 WHERE 
   p.id = ?;
-`
-  return await db.query(query,[productId])
-}
+`;
+  return await db.query(query, [productId]);
+};
+
+const findSubcategoryOfCategory = async (categoryId) => {
+  const query = `SELECT 
+  c.id AS category_id,
+  c.name AS category_name,
+  (
+      SELECT JSON_ARRAYAGG(JSON_OBJECT('subCategory_id', s.id, 'name', s.name,'image',s.image))
+      FROM subcategory s
+      WHERE s.category_id = c.id
+  ) AS subcategories
+FROM 
+  category c
+WHERE
+c.id=?;`;
+
+  return await db.query(query,[categoryId])
+};
+
 module.exports = {
   findRole,
   insertCategory,
   findCategoryOfBusiness,
   productsMainDetails,
   getCategoryList,
-  getProductDetail
+  getProductDetail,
+  findSubcategoryOfCategory
 };

@@ -33,94 +33,94 @@ function generateJWT(userId) {
   return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: "2h" });
 }
 
-exports.varifyMasterOtpRegister = async (req, res, next) => {
-  try {
-    const {
-      role,
-      firstname,
-      lastname,
-      email,
-      country_code,
-      phoneno,
-      hashedPassword,
-      imageUrl,
-      b_name,
-      category,
-      subcategory,
-      city,
-      state,
-      address,
-      aadharphoto,
-      aadharno,
-      otpid,
-      enteredotp,
-    } = req.body;
+// exports.varifyMasterOtpRegister = async (req, res, next) => {
+//   try {
+//     const {
+//       role,
+//       firstname,
+//       lastname,
+//       email,
+//       country_code,
+//       phoneno,
+//       hashedPassword,
+//       imageUrl,
+//       b_name,
+//       category,
+//       subcategory,
+//       city,
+//       state,
+//       address,
+//       aadharphoto,
+//       aadharno,
+//       otpid,
+//       enteredotp,
+//     } = req.body;
 
     
-    if (
-      enteredotp != '1234' ||
-      otpid !== "Otp_1A92DDDBBD014A5680909AE2CB2B4C72"
-    ) {
-      return sendHttpResponse(
-        req,
-        res,
-        next,
-        generateResponse({
-          status: "error",
-          statusCode: 401,
-          msg: "Invalid otp or otpId!",
-        })
-      );
-    }
+//     if (
+//       enteredotp != '1234' ||
+//       otpid !== "Otp_1A92DDDBBD014A5680909AE2CB2B4C72"
+//     ) {
+//       return sendHttpResponse(
+//         req,
+//         res,
+//         next,
+//         generateResponse({
+//           status: "error",
+//           statusCode: 401,
+//           msg: "Invalid otp or otpId!",
+//         })
+//       );
+//     }
 
-    [userResults] = await insertCustomer(
-      firstname,
-      lastname,
-      email,
-      country_code,
-      phoneno,
-      hashedPassword,
-      imageUrl,
-      role
-    );
-    const userId = userResults.insertId;
-    if (role == 2) {
-      await insertBusinessDetails(
-        userId,
-        b_name,
-        category,
-        subcategory,
-        city,
-        state,
-        address,
-        aadharphoto,
-        aadharno
-      );
-    }
+//     [userResults] = await insertCustomer(
+//       firstname,
+//       lastname,
+//       email,
+//       country_code,
+//       phoneno,
+//       hashedPassword,
+//       imageUrl,
+//       role
+//     );
+//     const userId = userResults.insertId;
+//     if (role == 2) {
+//       await insertBusinessDetails(
+//         userId,
+//         b_name,
+//         category,
+//         subcategory,
+//         city,
+//         state,
+//         address,
+//         aadharphoto,
+//         aadharno
+//       );
+//     }
 
-    return sendHttpResponse(
-      req,
-      res,
-      next,
-      generateResponse({
-        statusCode: 201,
-        status: "success",
-        msg: "User registerd successfully✅",
-      })
-    );
-  } catch (err) {
-    return sendHttpResponse(
-      req,
-      res,
-      next,
-      generateResponse({
-        status: "error",
-        statusCode: 500,
-        msg: "Internal server error",
-      })
-    );
-  }
-};
+//     return sendHttpResponse(
+//       req,
+//       res,
+//       next,
+//       generateResponse({
+//         statusCode: 201,
+//         status: "success",
+//         msg: "User registerd successfully✅",
+//       })
+//     );
+//   } catch (err) {
+//     return sendHttpResponse(
+//       req,
+//       res,
+//       next,
+//       generateResponse({
+//         status: "error",
+//         statusCode: 500,
+//         msg: "Internal server error",
+//       })
+//     );
+//   }
+// };
 
 
 exports.resendOtp = async (req, res, next) => {
@@ -371,29 +371,29 @@ exports.postRegister = async (req, res, next) => {
 
     const phonewithcountrycode = country_code + phoneno;
     const hashedPassword = await bcrypt.hash(password, 8);
-    // const response = await otpless.sendOTP(
-    //   phonewithcountrycode,
-    //   "",
-    //   "SMS",
-    //   "",
-    //   "",
-    //   60,
-    //   4,
-    //   clientId,
-    //   clientSecret
-    // );
-    // if (response.success === false) {
-      // return sendHttpResponse(
-      //   req,
-      //   res,
-      //   next,
-      //   generateResponse({
-      //     statusCode: 400,
-      //     status: "error",
-      //     msg: "Failed to generate OTP❌",
-      //   })
-      // );
-    // } else {
+    const response = await otpless.sendOTP(
+      phonewithcountrycode,
+      "",
+      "SMS",
+      "",
+      "",
+      60,
+      4,
+      clientId,
+      clientSecret
+    );
+    if (response.success === false) {
+      return sendHttpResponse(
+        req,
+        res,
+        next,
+        generateResponse({
+          statusCode: 400,
+          status: "error",
+          msg: "Failed to generate OTP❌",
+        })
+      );
+    } else {
       return sendHttpResponse(
         req,
         res,
@@ -419,12 +419,12 @@ exports.postRegister = async (req, res, next) => {
             aadharno: aadharno,
             country_code,
             phoneno: phoneno,
-            // otpid: response.orderId,
-            otpid: 'Otp_1A92DDDBBD014A5680909AE2CB2B4C72',
+            otpid: response.orderId,
+            // otpid: 'Otp_1A92DDDBBD014A5680909AE2CB2B4C72',
           },
         })
       );
-    // }
+    }
   } catch (error) {
     console.log("error while registering user", error);
     return sendHttpResponse(
@@ -543,7 +543,6 @@ exports.varifyOtpLogin = async (req, res, next) => {
       clientSecret
     );
     if (varificationresponse.success === false) {
-      if (varificationresponse.isOTPVerified === false) {
         return sendHttpResponse(
           req,
           res,
@@ -555,18 +554,8 @@ exports.varifyOtpLogin = async (req, res, next) => {
           })
         );
       }
-      return sendHttpResponse(
-        req,
-        res,
-        next,
-        generateResponse({
-          statusCode: 404,
-          status: "error",
-          msg: "entered otp is wrong,please try again😓",
-        })
-      );
-    }
-    const token = generateJWT(user.id);
+    if (varificationresponse.isOTPVerified === true) {
+        const token = generateJWT(user.id);
     return sendHttpResponse(
       req,
       res,
@@ -578,6 +567,17 @@ exports.varifyOtpLogin = async (req, res, next) => {
         data: {
           JWTToken: token,
         },
+      })
+    );
+    }
+    return sendHttpResponse(
+      req,
+      res,
+      next,
+      generateResponse({
+        statusCode: 404,
+        status: "error",
+        msg: "entered otp is wrong,please try again😓",
       })
     );
   } catch (error) {

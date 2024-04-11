@@ -6,6 +6,7 @@ const {
   productsMainDetails,
   getCategoryList,
   getProductDetail,
+  findSubcategoryOfCategory
 } = require("../repository/products");
 
 exports.categoryListBusiness = async (req, res, next) => {
@@ -246,3 +247,66 @@ exports.getCategoryListUser = async (req, res, next) => {
     );
   }
 };
+
+
+exports.getSubcategoryOfCategory=async(req,res,next)=>{
+  try{
+
+    const categoryId=req.params.categoryId;
+
+    const [subCategoryResults]=await findSubcategoryOfCategory(categoryId);
+    if(!subCategoryResults || subCategoryResults.length==0){
+      return sendHttpResponse(
+        req,
+        res,
+        next,
+        generateResponse({
+          status: "error",
+          statusCode: 400,
+          msg: "No subcategory for given category can be found or given catogryid is invalid",
+        })
+      );
+    }
+    const formattedSubCategoryResponse={
+      category_id:subCategoryResults[0].category_id,
+      category_name:subCategoryResults[0].category_name,
+      subcategories:subCategoryResults[0].subcategories
+    }
+    return sendHttpResponse(req,res,next,generateResponse({statusCode:200,status:'success',data:formattedSubCategoryResponse,msg:'subcategory data retrived successfully✅'}))
+  }
+  catch(error){
+    console.log('error while getting subcategorys:',error);
+    return sendHttpResponse(req,res,next,generateResponse({status:'error',statusCode:500,msg:'internal server error while getting subcategory'}))
+  }
+}
+
+exports.getProductsOfSubcategory=async(req,res,next)=>{
+  try{
+
+    const subCategory_id=req.params.subCategory_id;
+
+    const [productResults]=await findSubcategoryOfCategory(subCategory_id);
+    if(!productResults || productResults.length==0){
+      return sendHttpResponse(
+        req,
+        res,
+        next,
+        generateResponse({
+          status: "error",
+          statusCode: 400,
+          msg: "No product under this subcategory has been found or given subCatogry_id is invalid",
+        })
+      );
+    }
+    const formattedSubCategoryResponse={
+      product_id:subCategoryResults[0].category_id,
+      category_name:subCategoryResults[0].category_name,
+      subcategories:subCategoryResults[0].subcategories
+    }
+    return sendHttpResponse(req,res,next,generateResponse({statusCode:200,status:'success',data:formattedSubCategoryResponse,msg:'subcategory data retrived successfully✅'}))
+  }
+  catch(error){
+    console.log('error while getting subcategorys:',error);
+    return sendHttpResponse(req,res,next,generateResponse({status:'error',statusCode:500,msg:'internal server error while getting subcategory'}))
+  }
+}
