@@ -47,5 +47,5 @@ app.use((req, res, next) => {
 app.use("/auth", authroutes);
 
 app.use(userrotues);
-app.use(productroutes)
+app.use(productroutes);
 app.listen(process.env.PORT);

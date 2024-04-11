@@ -6,7 +6,12 @@ const {
   productsMainDetails,
   getCategoryList,
   getProductDetail,
-  findSubcategoryOfCategory
+  findSubcategoryOfCategory,
+  findProductsOfSubCategory,
+  insertIntoFavourite,
+  findFavouriteProductsDetails,
+  productExistsInFavourite,
+  deleteFromFavouriteProductsDetails
 } = require("../repository/products");
 
 exports.categoryListBusiness = async (req, res, next) => {
@@ -143,6 +148,7 @@ exports.getProducts = async (req, res, next) => {
           title: p.title,
           price: p.price,
           image: p.image,
+          is_favourite:p.is_favourite
         })),
         msg: "product data retrived successfully",
       })
@@ -164,10 +170,10 @@ exports.getProducts = async (req, res, next) => {
 
 exports.getProductDetail = async (req, res, next) => {
   try {
+    const userId=req.user.userId;
     const productId = req.params.productId;
 
-    const [productDetails] = await getProductDetail(productId);
-
+    const [productDetails] = await getProductDetail(userId,productId);
 
     const formattedResponse = {
       product_id: productDetails[0].product_id,
@@ -177,6 +183,7 @@ exports.getProductDetail = async (req, res, next) => {
       additional_info: productDetails[0].additional_info,
       images: productDetails[0].images,
       specifications: productDetails[0].specifications,
+      is_favourite:productDetails[0].is_favourite
     };
 
     return sendHttpResponse(
@@ -186,8 +193,7 @@ exports.getProductDetail = async (req, res, next) => {
       generateResponse({
         statusCode: 200,
         status: "success",
-        data: 
-          formattedResponse,
+        data: formattedResponse,
         msg: "Product details retrived successfully",
       })
     );
@@ -248,14 +254,12 @@ exports.getCategoryListUser = async (req, res, next) => {
   }
 };
 
+exports.getSubcategoryOfCategory = async (req, res, next) => {
+  try {
+    const categoryId = req.params.categoryId;
 
-exports.getSubcategoryOfCategory=async(req,res,next)=>{
-  try{
-
-    const categoryId=req.params.categoryId;
-
-    const [subCategoryResults]=await findSubcategoryOfCategory(categoryId);
-    if(!subCategoryResults || subCategoryResults.length==0){
+    const [subCategoryResults] = await findSubcategoryOfCategory(categoryId);
+    if (!subCategoryResults || subCategoryResults.length == 0) {
       return sendHttpResponse(
         req,
         res,
@@ -267,26 +271,44 @@ exports.getSubcategoryOfCategory=async(req,res,next)=>{
         })
       );
     }
-    const formattedSubCategoryResponse={
-      category_id:subCategoryResults[0].category_id,
-      category_name:subCategoryResults[0].category_name,
-      subcategories:subCategoryResults[0].subcategories
-    }
-    return sendHttpResponse(req,res,next,generateResponse({statusCode:200,status:'success',data:formattedSubCategoryResponse,msg:'subcategory data retrived successfully✅'}))
+    const formattedSubCategoryResponse = {
+      category_id: subCategoryResults[0].category_id,
+      category_name: subCategoryResults[0].category_name,
+      subcategories: subCategoryResults[0].subcategories,
+    };
+    return sendHttpResponse(
+      req,
+      res,
+      next,
+      generateResponse({
+        statusCode: 200,
+        status: "success",
+        data: formattedSubCategoryResponse,
+        msg: "subcategory data retrived successfully✅",
+      })
+    );
+  } catch (error) {
+    console.log("error while getting subcategorys:", error);
+    return sendHttpResponse(
+      req,
+      res,
+      next,
+      generateResponse({
+        status: "error",
+        statusCode: 500,
+        msg: "internal server error while getting subcategory",
+      })
+    );
   }
-  catch(error){
-    console.log('error while getting subcategorys:',error);
-    return sendHttpResponse(req,res,next,generateResponse({status:'error',statusCode:500,msg:'internal server error while getting subcategory'}))
-  }
-}
+};
 
-exports.getProductsOfSubcategory=async(req,res,next)=>{
-  try{
+exports.getProductsOfSubcategory = async (req, res, next) => {
+  try {
+    const userId=req.user.userId;
+    const subCategory_id = req.params.subCategory_id;
 
-    const subCategory_id=req.params.subCategory_id;
-
-    const [productResults]=await findSubcategoryOfCategory(subCategory_id);
-    if(!productResults || productResults.length==0){
+    const [productResults] = await findProductsOfSubCategory(userId,subCategory_id);
+    if (!productResults || productResults.length == 0) {
       return sendHttpResponse(
         req,
         res,
@@ -298,15 +320,164 @@ exports.getProductsOfSubcategory=async(req,res,next)=>{
         })
       );
     }
-    const formattedSubCategoryResponse={
-      product_id:subCategoryResults[0].category_id,
-      category_name:subCategoryResults[0].category_name,
-      subcategories:subCategoryResults[0].subcategories
+    // const formattedSubCategoryResponse={
+    //   product_id:subCategoryResults[0].category_id,
+    //   category_name:subCategoryResults[0].category_name,
+    //   subcategories:subCategoryResults[0].subcategories
+    // }
+    return sendHttpResponse(
+      req,
+      res,
+      next,
+      generateResponse({
+        statusCode: 200,
+        status: "success",
+        data: productResults,
+        msg: "products details of given subcategory data retrived successfully✅",
+      })
+    );
+  } catch (error) {
+    console.log("error while getting products subcategory:", error);
+    return sendHttpResponse(
+      req,
+      res,
+      next,
+      generateResponse({
+        status: "error",
+        statusCode: 500,
+        msg: "internal server error while getting products of subcategory",
+      })
+    );
+  }
+};
+
+exports.postFavouritesProduct = async (req, res, next) => {
+  try {
+    const productId = req.params.productId;
+    const userId = req.user.userId;
+    const [existsInFavourite]=await productExistsInFavourite(productId,userId);
+    if(existsInFavourite){
+      return sendHttpResponse(
+        req,
+        res,
+        next,
+        generateResponse({
+          status: "error",
+          statusCode: 400,
+          msg: "product already exists in favourites",
+        })
+      );
     }
-    return sendHttpResponse(req,res,next,generateResponse({statusCode:200,status:'success',data:formattedSubCategoryResponse,msg:'subcategory data retrived successfully✅'}))
+    const [insertResult] = await insertIntoFavourite(productId, userId);
+    if (!insertResult) {
+      return sendHttpResponse(
+        req,
+        res,
+        next,
+        generateResponse({
+          status: "error",
+          statusCode: 400,
+          msg: "failed to add product to favourites",
+        })
+      );
+    }
+    return sendHttpResponse(
+      req,
+      res,
+      next,
+      generateResponse({
+        statusCode: 200,
+        status: "success",
+        msg: "product added to favourite product list successfully❤️",
+      })
+    );
+  } catch (error) {
+    console.log("error while posting to favourite products:", error);
+    return sendHttpResponse(
+      req,
+      res,
+      next,
+      generateResponse({
+        status: "error",
+        statusCode: 500,
+        msg: "internal server error while posting to favourite products",
+      })
+    );
   }
-  catch(error){
-    console.log('error while getting subcategorys:',error);
-    return sendHttpResponse(req,res,next,generateResponse({status:'error',statusCode:500,msg:'internal server error while getting subcategory'}))
+};
+
+exports.getFavouritesProducts = async (req, res, next) => {
+  try {
+    
+    const userId = req.user.userId;
+
+    const [favouriteResults] = await findFavouriteProductsDetails(userId);
+    if (!favouriteResults || favouriteResults.length===0) {
+      return sendHttpResponse(
+        req,
+        res,
+        next,
+        generateResponse({
+          status: "error",
+          statusCode: 400,
+          msg: "No products have been added to favourites by you yet!!👀",
+        })
+      );
+    }
+    return sendHttpResponse(
+      req,
+      res,
+      next,
+      generateResponse({
+        statusCode: 200,
+        status: "success",
+        data:favouriteResults,
+        msg: "favourite product list fetched successfully❤️",
+      })
+    );
+  } catch (error) {
+    console.log("error while posting to favourite products:", error);
+    return sendHttpResponse(
+      req,
+      res,
+      next,
+      generateResponse({
+        status: "error",
+        statusCode: 500,
+        msg: "internal server error while fetching favourite products",
+      })
+    );
   }
-}
+};
+
+exports.removeFromFavourites = async (req, res, next) => {
+  try {
+    const productId=req.params.productId;
+    const userId = req.user.userId;
+
+    await deleteFromFavouriteProductsDetails(productId,userId);
+  
+    return sendHttpResponse(
+      req,
+      res,
+      next,
+      generateResponse({
+        statusCode: 200,
+        status: "success",
+        msg: "product removed from favourites successfully",
+      })
+    );
+  } catch (error) {
+    console.log("error while removeing product from favourites :", error);
+    return sendHttpResponse(
+      req,
+      res,
+      next,
+      generateResponse({
+        status: "error",
+        statusCode: 500,
+        msg: "internal server error while removeing product favourites",
+      })
+    );
+  }
+};

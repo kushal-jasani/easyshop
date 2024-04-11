@@ -6,12 +6,19 @@ const productController=require('../controller/products');
 router.get('/category-list',isAuth,productController.categoryListBusiness);
 router.post('/category-list/addcategory',isAuth,productController.addCategory)
 
-router.get('/products',productController.getProducts);
+router.get('/products',isAuth,productController.getProducts);
 router.get('/products/category-list',productController.getCategoryListUser);
 router.get('/products/category-list/:categoryId',productController.getSubcategoryOfCategory);
+router.get('/products/category-list/subcategory/:subCategory_id',isAuth,productController.getProductsOfSubcategory);
+
 
 // router.post('/products',productController.addProducts);
-router.get('/products/:productId',productController.getProductDetail);
+router.get('/products/:productId',isAuth,productController.getProductDetail);
+
+//favourite products
+router.post('/products/addtofavourites/:productId',isAuth,productController.postFavouritesProduct);
+router.get('/products/favourites/list',isAuth,productController.getFavouritesProducts);
+router.delete('/products/favouritres/remove/:productId',isAuth,productController.removeFromFavourites);
 
 
 module.exports=router;

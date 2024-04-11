@@ -19,17 +19,32 @@ const insertCategory = async (name, image, userId) => {
   });
 };
 
-const productsMainDetails = async () => {
+const productsMainDetails = async (userId) => {
   return await db.query(
-    "select p.id,p.title,p.price,i.image from products p left join images i on p.id=i.product_id"
-  );
+    `SELECT 
+    p.id,
+    p.title,
+    p.price,
+    i.image,
+    CASE
+        WHEN EXISTS (
+            SELECT 1
+            FROM favourites f
+            WHERE f.product_id = p.id AND f.user_id = 70
+        ) THEN 1
+        ELSE 0
+    END AS is_favourite
+FROM 
+    products p
+LEFT JOIN 
+    images i ON p.id = i.product_id` ,[userId] );
 };
 
 const getCategoryList = async () => {
   return await db.query("select id,name,image from category");
 };
 
-const getProductDetail = async (productId) => {
+const getProductDetail = async (userId,productId) => {
   const query = `SELECT 
   p.id AS product_id,
   p.title,
@@ -45,7 +60,15 @@ const getProductDetail = async (productId) => {
   SELECT JSON_ARRAYAGG(JSON_OBJECT('key',s.key , 'value', s.value))
   FROM specification s
   WHERE s.product_id = p.id
-)AS specifications
+)AS specifications,
+CASE
+WHEN EXISTS (
+    SELECT 1 
+    FROM favourites f 
+    WHERE f.product_id = p.id AND f.user_id = ?
+) THEN 1
+ELSE 0
+END AS is_favourite
 FROM 
   products p
 LEFT JOIN 
@@ -53,7 +76,7 @@ LEFT JOIN
 WHERE 
   p.id = ?;
 `;
-  return await db.query(query, [productId]);
+  return await db.query(query, [userId,productId]);
 };
 
 const findSubcategoryOfCategory = async (categoryId) => {
@@ -70,8 +93,69 @@ FROM
 WHERE
 c.id=?;`;
 
-  return await db.query(query,[categoryId])
+  return await db.query(query, [categoryId]);
 };
+
+const findProductsOfSubCategory = async (userId,subCategory_id) => {
+  const query = `SELECT 
+  p.id AS product_id,
+  p.title,
+  p.price,
+  (SELECT image 
+   FROM images 
+   WHERE product_id = p.id 
+   LIMIT 1) AS image_url,
+  (SELECT type 
+   FROM images 
+   WHERE product_id = p.id 
+   LIMIT 1) AS image_type,
+   CASE
+        WHEN EXISTS (
+            SELECT 1 
+            FROM favourites f 
+            WHERE f.product_id = p.id AND f.user_id = ?
+        ) THEN 1
+        ELSE 0
+    END AS is_favourite
+FROM
+  products p
+WHERE
+  p.subcategory_id = ?;`;
+
+  return await db.query(query, [userId,subCategory_id]);
+};
+
+const insertIntoFavourite = async (productId, userId) => {
+  return await db.query("insert into favourites set ?", {
+    product_id: productId,
+    user_id: userId,
+  });
+};
+
+const findFavouriteProductsDetails=async(userId)=>{
+  const query=`SELECT 
+  p.id,
+  p.title,
+  p.price,
+  (SELECT image FROM images WHERE product_id = p.id LIMIT 1) AS imageurl,
+  (SELECT type FROM images WHERE product_id = p.id LIMIT 1) AS image_type
+FROM 
+  favourites fp
+JOIN 
+  products p ON fp.product_id = p.id
+WHERE 
+  fp.user_id = ?;
+`
+  return await db.query(query,[userId]);
+}
+
+const productExistsInFavourite=async(productId,userId)=>{
+  return await db.query('select * from favourites where product_id=? && user_id=?',[productId,userId])
+}
+
+const deleteFromFavouriteProductsDetails=async(productId,userId)=>{
+  return await db.query('delete from favourites where product_id=? && user_id=?',[productId,userId])
+}
 
 module.exports = {
   findRole,
@@ -80,5 +164,10 @@ module.exports = {
   productsMainDetails,
   getCategoryList,
   getProductDetail,
-  findSubcategoryOfCategory
+  findSubcategoryOfCategory,
+  findProductsOfSubCategory,
+  insertIntoFavourite,
+  findFavouriteProductsDetails,
+  productExistsInFavourite,
+  deleteFromFavouriteProductsDetails
 };
