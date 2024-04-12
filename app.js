@@ -3,11 +3,10 @@ const cloudinary = require("cloudinary").v2;
 const { CloudinaryStorage } = require("multer-storage-cloudinary");
 const multer = require("multer");
 const app = express();
-const path = require("path");
-const db = require("./util/database");
 const authroutes = require("./routes/auth");
 const userrotues = require("./routes/user");
 const productroutes = require("./routes/products");
+const filterroutes=require('./routes/filter')
 
 const bodyparser = require("body-parser");
 
@@ -48,4 +47,5 @@ app.use("/auth", authroutes);
 
 app.use(userrotues);
 app.use(productroutes);
+app.use(filterroutes);
 app.listen(process.env.PORT);
