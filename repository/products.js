@@ -22,15 +22,15 @@ const insertCategory = async (name, image, userId) => {
 const productsMainDetails = async (userId) => {
   return await db.query(
     `SELECT 
-    p.id,
-    p.title,
+    p.id AS product_id,
+    p.title AS product_title,
     p.price,
     i.image,
     CASE
         WHEN EXISTS (
             SELECT 1
             FROM favourites f
-            WHERE f.product_id = p.id AND f.user_id = 70
+            WHERE f.product_id = p.id AND f.user_id = ?
         ) THEN 1
         ELSE 0
     END AS is_favourite
@@ -47,7 +47,7 @@ const getCategoryList = async () => {
 const getProductDetail = async (userId,productId) => {
   const query = `SELECT 
   p.id AS product_id,
-  p.title,
+  p.title AS product_title,
   p.price,
   p.description,
   p.additional_info,
@@ -71,8 +71,6 @@ ELSE 0
 END AS is_favourite
 FROM 
   products p
-LEFT JOIN 
-  images i ON p.id = i.product_id
 WHERE 
   p.id = ?;
 `;

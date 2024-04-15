@@ -143,13 +143,7 @@ exports.getProducts = async (req, res, next) => {
       generateResponse({
         statusCode: 200,
         status: "success",
-        data: productResults.map((p) => ({
-          product_id: p.id,
-          title: p.title,
-          price: p.price,
-          image: p.image,
-          is_favourite:p.is_favourite
-        })),
+        data: productResults,
         msg: "product data retrived successfully",
       })
     );
@@ -174,17 +168,16 @@ exports.getProductDetail = async (req, res, next) => {
     const productId = req.params.productId;
 
     const [productDetails] = await getProductDetail(userId,productId);
-
-    const formattedResponse = {
-      product_id: productDetails[0].product_id,
-      title: productDetails[0].title,
-      price: productDetails[0].price,
-      description: productDetails[0].description,
-      additional_info: productDetails[0].additional_info,
-      images: productDetails[0].images,
-      specifications: productDetails[0].specifications,
-      is_favourite:productDetails[0].is_favourite
-    };
+    // const formattedResponse = {
+    //   product_id: productDetails[0].product_id,
+    //   title: productDetails[0].title,
+    //   price: productDetails[0].price,
+    //   description: productDetails[0].description,
+    //   additional_info: productDetails[0].additional_info,
+    //   images: productDetails[0].images,
+    //   specifications: productDetails[0].specifications,
+    //   is_favourite:productDetails[0].is_favourite
+    // };
 
     return sendHttpResponse(
       req,
@@ -193,7 +186,7 @@ exports.getProductDetail = async (req, res, next) => {
       generateResponse({
         statusCode: 200,
         status: "success",
-        data: formattedResponse,
+        data: productDetails,
         msg: "Product details retrived successfully",
       })
     );
@@ -271,11 +264,11 @@ exports.getSubcategoryOfCategory = async (req, res, next) => {
         })
       );
     }
-    const formattedSubCategoryResponse = {
-      category_id: subCategoryResults[0].category_id,
-      category_name: subCategoryResults[0].category_name,
-      subcategories: subCategoryResults[0].subcategories,
-    };
+    // const formattedSubCategoryResponse = {
+    //   category_id: subCategoryResults[0].category_id,
+    //   category_name: subCategoryResults[0].category_name,
+    //   subcategories: subCategoryResults[0].subcategories,
+    // };
     return sendHttpResponse(
       req,
       res,
@@ -283,7 +276,7 @@ exports.getSubcategoryOfCategory = async (req, res, next) => {
       generateResponse({
         statusCode: 200,
         status: "success",
-        data: formattedSubCategoryResponse,
+        data: subCategoryResults,
         msg: "subcategory data retrived successfully✅",
       })
     );
@@ -356,7 +349,7 @@ exports.postFavouritesProduct = async (req, res, next) => {
     const productId = req.params.productId;
     const userId = req.user.userId;
     const [existsInFavourite]=await productExistsInFavourite(productId,userId);
-    if(existsInFavourite){
+    if(existsInFavourite.length>0){
       return sendHttpResponse(
         req,
         res,

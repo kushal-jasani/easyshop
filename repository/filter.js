@@ -24,12 +24,14 @@ WHERE
     return await db.query(query,[category_id])
 }
 
-const filterResult=async(categoryFilters,priceFilter)=>{
+const filterResult=async(searchText,categoryFilters,priceFilter)=>{
 
     let query = `
     SELECT 
         p.id AS product_id,
-        p.title,
+        c.name AS category_name,
+        s.name AS subcategory_name,
+        p.title AS product_title,
         p.price,
         p.description,
         p.additional_info,
@@ -43,14 +45,23 @@ const filterResult=async(categoryFilters,priceFilter)=>{
         products p
     JOIN 
         subcategory s ON p.subcategory_id = s.id
+    JOIN 
+        category c ON s.category_id = c.id
     WHERE 
   `;
+
 
 
   // Add category filters to SQL query
   if (categoryFilters && categoryFilters.length > 0) {
     const categoryIds = categoryFilters.map(category => category.id);
     query += `s.category_id IN (${categoryIds.join(',')}) AND `;
+  }
+
+  if(searchText){
+    query+=`(c.name LIKE '%${searchText}%'
+    OR s.name LIKE '%${searchText}%'
+    OR p.title LIKE '%${searchText}%') AND `
   }
 
   // Add price filter to SQL query
@@ -65,7 +76,36 @@ const filterResult=async(categoryFilters,priceFilter)=>{
   return await db.query(query);
 
 }
+
+const search=async(searchText)=>{
+    const query=`
+    SELECT 
+        p.id AS product_id,
+        c.name AS category_name,
+        s.name AS subcategory_name,
+        p.title AS product_title,
+        p.price,
+        p.description,
+        p.additional_info,
+        (SELECT image 
+         FROM images 
+         WHERE product_id = p.id 
+         LIMIT 1) AS image_url
+    FROM 
+        products p
+    JOIN 
+        subcategory s ON p.subcategory_id = s.id
+    JOIN 
+        category c ON s.category_id = c.id
+    WHERE 
+        c.name LIKE '%${searchText}%'
+        OR s.name LIKE '%${searchText}%'
+        OR p.title LIKE '%${searchText}%'
+    `;
+    return await db.query(query);
+}
 module.exports={
 filterByCategory,
-filterResult
+filterResult,
+search
 }

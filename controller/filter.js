@@ -1,5 +1,5 @@
 const { sendHttpResponse, generateResponse } = require("../helper/response");
-const { filterByCategory, filterResult } = require("../repository/filter");
+const { filterByCategory, filterResult,search } = require("../repository/filter");
 const { getCategoryList } = require("../repository/products");
 
 exports.categoryFilter = async (req, res, next) => {
@@ -85,9 +85,9 @@ exports.showFilter = async (req, res, next) => {
 
 exports.getFilter = async (req, res, next) => {
   try {
-    const { categoryFilters, priceFilter } = req.body;
+    const { searchText,categoryFilters, priceFilter } = req.body;
 
-    const [categoryProducts] = await filterResult(categoryFilters, priceFilter);
+    const [categoryProducts] = await filterResult(searchText,categoryFilters, priceFilter);
 
     if (!categoryProducts || categoryProducts.length == 0) {
       return sendHttpResponse(
@@ -122,6 +122,41 @@ exports.getFilter = async (req, res, next) => {
         status: "error",
         statusCode: 500,
         msg: "internal server error while filtering category products",
+      })
+    );
+  }
+};
+
+exports.search = async (req, res, next) => {
+  try {
+    const {searchText} = req.body;
+
+    const [searchResults] = await search(searchText);
+
+    if (!searchResults || searchResults.length == 0) {
+      return sendHttpResponse(
+        req,
+        res,
+        next,
+        generateResponse({
+          status: "error",
+          statusCode: 400,
+          msg: "products for this search not found",
+        })
+      );
+    }
+    return sendHttpResponse(req,res,next,generateResponse({statusCode:200,status:'success',data:searchResults,msg:'products for search retirved successfully'}))
+
+  } catch (error) {
+    console.log("error while searching:", error);
+    return sendHttpResponse(
+      req,
+      res,
+      next,
+      generateResponse({
+        status: "error",
+        statusCode: 500,
+        msg: "internal server error while searching ",
       })
     );
   }
