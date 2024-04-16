@@ -2,7 +2,7 @@ const db = require("../util/database");
 
 const userDetailsFromId = async (userId) => {
   return await db.query(
-    "select firstname,lastname,email,phoneno,role from users where id=?",
+    "select firstname,lastname,email,phoneno,role,image from users where id=?",
     [userId]
   );
 };
@@ -27,7 +27,7 @@ const updateUserDetails = async (updatedFields, userId,role) => {
     const businessTableFields={};
     
     for(let field in updatedFields){
-      if(field==="phoneno"||field==="email"){
+      if(field==="phoneno"||field==="email"||field==='image'){
         userTableFields[field]=updatedFields[field];
       }
       else{

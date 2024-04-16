@@ -12,6 +12,7 @@ const registerSchema = Joi.object({
   email: Joi.string().email().lowercase().required(),
   phoneno: Joi.string().min(10).required(),
   country_code: Joi.string().required(),
+  image:Joi.any(),
   password: Joi.string().pattern(new RegExp("^[a-zA-Z0-9]{6,30}$")).required(),
   b_name: Joi.string().when("role", { is: 2, then: Joi.required() }),
   category: Joi.string().when("role", { is: 2, then: Joi.required() }),
@@ -21,6 +22,7 @@ const registerSchema = Joi.object({
   address: Joi.string().when("role", { is: 2, then: Joi.required() }),
   aadharno: Joi.string().when("role", { is: 2, then: Joi.required() }).length(12)
   .pattern(/^[0-9]+$/, 'numeric'),
+  aadharphoto:Joi.any()
 });
 
 const changePasswordSchema = Joi.object({

@@ -1,3 +1,5 @@
+const cloudinary = require('cloudinary').v2;
+
 const { sendHttpResponse, generateResponse } = require("../helper/response");
 const {
   userDetailsFromId,
@@ -11,6 +13,8 @@ const {
 } = require("../repository/user");
 const {getUserDataByPhoneNo}=require('../repository/auth')
 const { findRole} = require("../repository/products");
+const { uploader } = require("../uploads/uploader");
+const { extractPublicId } = require("../uploads/public_id");
 
 
 exports.getUserDetails = async (req, res, next) => {
@@ -95,13 +99,13 @@ exports.postUpdateDetails = async (req, res, next) => {
   try {
     const userId = req.user.userId;
     const updatedFields = req.body;
-
+    const [userData]=await userDetailsFromId(userId);
     const [roleOfCurrentUser] = await findRole(userId);
     const role=roleOfCurrentUser[0].role;
 
     const allowedFields = {
-      1: ['firstname', 'lastname', 'email', 'phoneno'],
-      2: ['email', 'phoneno', 'b_name', 'category', 'subcategory', 'city', 'state', 'country', 'address', 'aadhar_photo', 'aadhar_no']
+      1: ['firstname', 'lastname', 'email', 'phoneno','image'],
+      2: ['email', 'phoneno', 'b_name', 'category', 'subcategory', 'city', 'state', 'country', 'address', 'aadhar_photo', 'aadhar_no','image']
     };
 
     if (!allowedFields[role]) {
@@ -117,6 +121,18 @@ exports.postUpdateDetails = async (req, res, next) => {
       );
     }
 
+    let imageUrl;
+
+    if (req.files && req.files['image']) {
+      const publicId = await extractPublicId(userData[0].image)
+      cloudinary.api.delete_resources([publicId], { type: 'upload', resource_type: 'image' })
+                    .then(console.log('Deleted old profile image'));
+      const imageFile = req.files['image'][0].path;
+      imageUrl = await uploader(imageFile);
+    }
+    if (imageUrl) {
+      updatedFields['image'] = imageUrl;
+    }
 
     if(updatedFields.phoneno){
 
@@ -151,13 +167,24 @@ exports.postUpdateDetails = async (req, res, next) => {
       );
     }
 
+    let aadharImageUrl;
+
+    if (req.files && req.files['aadharphoto']) {
+      const publicId = await extractPublicId(userData[0].aadhar_photo)
+      cloudinary.api.delete_resources([publicId], { type: 'upload', resource_type: 'image' })
+                    .then(console.log('Deleted old aadhar image'));
+      const imageFile = req.files['aadharphoto'][0].path;
+      aadharImageUrl = await uploader(imageFile);
+    }
+    if (aadharImageUrl) {
+      updatedFields['aadhar_photo'] = aadharImageUrl;
+    }
     // const filteredFields = Object.keys(updatedFields)
     // .filter(key => allowedFields[role].includes(key))
     // .reduce((obj, key) => {
     //   obj[key] = updatedFields[key];
     //   return obj;
     // }, {});
-
 
     const [results] = await updateUserDetails(updatedFields,userId,role);
 

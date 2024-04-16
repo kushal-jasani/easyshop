@@ -19,6 +19,8 @@ const {
   addTokenToUser,
   getUserFromToken,
   updatePasswordAndToken,
+  updateUserImage,
+  updateAadharImage,
 } = require("../repository/auth");
 
 const {
@@ -28,6 +30,7 @@ const {
   resetPasswordSchema,
   postResetPasswordSchema,
 } = require("../helper/validation_schema");
+const { uploader } = require("../uploads/uploader");
 
 function generateJWT(userId) {
   return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: "2h" });
@@ -56,7 +59,6 @@ function generateJWT(userId) {
 //       enteredotp,
 //     } = req.body;
 
-    
 //     if (
 //       enteredotp != '1234' ||
 //       otpid !== "Otp_1A92DDDBBD014A5680909AE2CB2B4C72"
@@ -122,7 +124,6 @@ function generateJWT(userId) {
 //   }
 // };
 
-
 exports.resendOtp = async (req, res, next) => {
   const { otpid } = req.body;
   try {
@@ -176,19 +177,51 @@ exports.varifyOtpRegister = async (req, res, next) => {
       email,
       country_code,
       phoneno,
-      hashedPassword,
-      imageUrl,
+      password,
       b_name,
       category,
       subcategory,
       city,
       state,
       address,
-      aadharphoto,
       aadharno,
       otpid,
       enteredotp,
     } = req.body;
+
+    if (parseInt(role) == 2 && !req.files["image"]) {
+      return sendHttpResponse(
+        req,
+        res,
+        next,
+        generateResponse({
+          status: "error",
+          statusCode: 404,
+          msg: "For businesses,business logo is required",
+        })
+      );
+    }
+    let imageUrl, aadharphoto;
+    if (req.files && req.files["image"]) {
+      imageUrl = req.files["image"][0].path;
+    } else {
+      imageUrl = null;
+    }
+
+    if (role == 2 && !req.files["aadharphoto"]) {
+      return sendHttpResponse(
+        req,
+        res,
+        next,
+        generateResponse({
+          status: "error",
+          statusCode: 400,
+          msg: "Addhar photo for business is required",
+        })
+      );
+    } else if (role == 2 && req.files["aadharphoto"]) {
+      aadharphoto = req.files["aadharphoto"][0].path;
+    }
 
     const phonewithcountrycode = country_code + phoneno;
     const varificationresponse = await otpless.verifyOTP(
@@ -214,6 +247,7 @@ exports.varifyOtpRegister = async (req, res, next) => {
     }
 
     if (varificationresponse.isOTPVerified === true) {
+      const hashedPassword = await bcrypt.hash(password, 8);
       [userResults] = await insertCustomer(
         firstname,
         lastname,
@@ -221,12 +255,21 @@ exports.varifyOtpRegister = async (req, res, next) => {
         country_code,
         phoneno,
         hashedPassword,
-        imageUrl,
         role
       );
+
       const userId = userResults.insertId;
+      if (userId && imageUrl) {
+        let imageResult = await uploader(imageUrl);
+        const [profileImageUrl = null] = imageResult ?? [];
+        console.log("profileImageUrl: ", profileImageUrl);
+
+        if (profileImageUrl) {
+          await updateUserImage({ userId, profileImageUrl });
+        }
+      }
       if (role == 2) {
-        await insertBusinessDetails(
+        [businessResults] = await insertBusinessDetails(
           userId,
           b_name,
           category,
@@ -234,9 +277,17 @@ exports.varifyOtpRegister = async (req, res, next) => {
           city,
           state,
           address,
-          aadharphoto,
           aadharno
         );
+        const businessInsertId = businessResults.insertId;
+        if (businessInsertId && aadharphoto) {
+          let imageResult = await uploader(aadharphoto);
+          const [aadharImageUrl = null] = imageResult ?? [];
+          console.log("aadharImageUrl: ", aadharImageUrl);
+          if (aadharImageUrl) {
+            await updateAadharImage({ businessInsertId, aadharImageUrl });
+          }
+        }
       }
       return sendHttpResponse(
         req,
@@ -291,19 +342,9 @@ exports.postRegister = async (req, res, next) => {
     }
     const {
       role,
-      firstname,
-      lastname,
-      email,
       phoneno,
-      password,
       country_code,
-      b_name,
-      category,
-      subcategory,
-      city,
-      state,
-      address,
-      aadharno,
+      
     } = req.body;
 
     if (parseInt(role) !== 1 && parseInt(role) !== 2) {
@@ -319,7 +360,7 @@ exports.postRegister = async (req, res, next) => {
       );
     }
 
-    if (parseInt(role) == 2 && !req.files["image"][0]) {
+    if (parseInt(role) == 2 && !req.files["image"]) {
       return sendHttpResponse(
         req,
         res,
@@ -346,15 +387,15 @@ exports.postRegister = async (req, res, next) => {
         })
       );
     }
-
+    
     let imageUrl, aadharphoto;
     if (req.files && req.files["image"]) {
       imageUrl = req.files["image"][0].path;
     } else {
       imageUrl = null;
     }
-
-    if (role == 2 && !req.files["aadharphoto"][0]) {
+    
+    if (role == 2 && !req.files["aadharphoto"]) {
       return sendHttpResponse(
         req,
         res,
@@ -370,7 +411,7 @@ exports.postRegister = async (req, res, next) => {
     }
 
     const phonewithcountrycode = country_code + phoneno;
-    const hashedPassword = await bcrypt.hash(password, 8);
+    // const hashedPassword = await bcrypt.hash(password, 8);
     const response = await otpless.sendOTP(
       phonewithcountrycode,
       "",
@@ -403,22 +444,22 @@ exports.postRegister = async (req, res, next) => {
           status: "success",
           msg: "Otp sent successfully on given mobile number🚀",
           data: {
-            role: role,
-            firstname: firstname,
-            lastname: lastname,
-            email: email,
-            password: hashedPassword,
-            image: imageUrl,
-            b_name: b_name,
-            category: category,
-            subcategory: subcategory,
-            city: city,
-            state: state,
-            address: address,
-            aadharphoto: aadharphoto,
-            aadharno: aadharno,
-            country_code,
-            phoneno: phoneno,
+            // role: role,
+            // firstname: firstname,
+            // lastname: lastname,
+            // email: email,
+            // password: hashedPassword,
+            // image: imageUrl,
+            // b_name: b_name,
+            // category: category,
+            // subcategory: subcategory,
+            // city: city,
+            // state: state,
+            // address: address,
+            // aadharphoto: aadharphoto,
+            // aadharno: aadharno,
+            // country_code,
+            // phoneno: phoneno,
             otpid: response.orderId,
             // otpid: 'Otp_1A92DDDBBD014A5680909AE2CB2B4C72',
           },
@@ -543,32 +584,32 @@ exports.varifyOtpLogin = async (req, res, next) => {
       clientSecret
     );
     if (varificationresponse.success === false) {
-        return sendHttpResponse(
-          req,
-          res,
-          next,
-          generateResponse({
-            statusCode: 404,
-            status: "error",
-            msg: varificationresponse.errorMessage,
-          })
-        );
-      }
+      return sendHttpResponse(
+        req,
+        res,
+        next,
+        generateResponse({
+          statusCode: 404,
+          status: "error",
+          msg: varificationresponse.errorMessage,
+        })
+      );
+    }
     if (varificationresponse.isOTPVerified === true) {
-        const token = generateJWT(user.id);
-    return sendHttpResponse(
-      req,
-      res,
-      next,
-      generateResponse({
-        statusCode: 200,
-        status: "success",
-        msg: "You're loggedin successfully🥳",
-        data: {
-          JWTToken: token,
-        },
-      })
-    );
+      const token = generateJWT(user.id);
+      return sendHttpResponse(
+        req,
+        res,
+        next,
+        generateResponse({
+          statusCode: 200,
+          status: "success",
+          msg: "You're loggedin successfully🥳",
+          data: {
+            JWTToken: token,
+          },
+        })
+      );
     }
     return sendHttpResponse(
       req,

@@ -12,7 +12,6 @@ const insertCustomer = async (
   country_code,
   phoneno,
   hashedPassword,
-  imageUrl,
   role
 ) => {
   return await db.query("insert into users set ?", {
@@ -22,7 +21,6 @@ const insertCustomer = async (
     country_code: country_code,
     phoneno: phoneno,
     password: hashedPassword,
-    image: imageUrl,
     role: role,
   });
 };
@@ -51,6 +49,19 @@ const insertBusinessDetails = async (
   });
 };
 
+const updateUserImage = async (insertId, url) => {
+  return await db.query("update users set image = ? where id=?", [
+    url,
+    insertId,
+  ]);
+};
+
+const updateAadharImage = async (insertId, url) => {
+  return await db.query("update business set aadhar_photo = ? where id=?", [
+    url,
+    insertId,
+  ]);
+};
 const findPasswordOfUser = async (userId) => {
   return await db.query("select password from users where id = ?", [userId]);
 };
@@ -104,6 +115,8 @@ module.exports = {
   getUserDataByPhoneNo,
   insertCustomer,
   insertBusinessDetails,
+  updateUserImage,
+  updateAadharImage,
   findPasswordOfUser,
   updateUserPassword,
   getUserByEmail,
