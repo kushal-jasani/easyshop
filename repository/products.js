@@ -19,13 +19,16 @@ const insertCategory = async (name, image, userId) => {
   });
 };
 
-const productsMainDetails = async (userId) => {
+const productsMainDetails = async (userId,limit, offset) => {
   return await db.query(
     `SELECT 
     p.id AS product_id,
     p.title AS product_title,
     p.price,
-    i.image,
+    (SELECT image 
+      FROM images 
+      WHERE product_id = p.id 
+      LIMIT 1) AS image_url,
     CASE
         WHEN EXISTS (
             SELECT 1
@@ -36,12 +39,12 @@ const productsMainDetails = async (userId) => {
     END AS is_favourite
 FROM 
     products p
-LEFT JOIN 
-    images i ON p.id = i.product_id` ,[userId] );
+LIMIT ?, ?`,
+    [userId,offset,limit] );
 };
 
-const getCategoryList = async () => {
-  return await db.query("select id,name,image from category");
+const getCategoryList = async (limit,offset) => {
+  return await db.query("select id,name,image from category LIMIT ?,?",[offset,limit]);
 };
 
 const getProductDetail = async (userId,productId) => {
@@ -94,7 +97,7 @@ c.id=?;`;
   return await db.query(query, [categoryId]);
 };
 
-const findProductsOfSubCategory = async (userId,subCategory_id) => {
+const findProductsOfSubCategory = async (userId,subCategory_id,limit,offset) => {
   const query = `SELECT 
   p.id AS product_id,
   p.title,
@@ -118,9 +121,11 @@ const findProductsOfSubCategory = async (userId,subCategory_id) => {
 FROM
   products p
 WHERE
-  p.subcategory_id = ?;`;
+  p.subcategory_id = ?
+LIMIT ?,?
+  `;
 
-  return await db.query(query, [userId,subCategory_id]);
+  return await db.query(query, [userId,subCategory_id,offset,limit]);
 };
 
 const insertIntoFavourite = async (productId, userId) => {
@@ -130,7 +135,7 @@ const insertIntoFavourite = async (productId, userId) => {
   });
 };
 
-const findFavouriteProductsDetails=async(userId)=>{
+const findFavouriteProductsDetails=async(userId,limit,offset)=>{
   const query=`SELECT 
   p.id,
   p.title,
@@ -142,9 +147,10 @@ FROM
 JOIN 
   products p ON fp.product_id = p.id
 WHERE 
-  fp.user_id = ?;
+  fp.user_id = ?
+LIMIT ?,?
 `
-  return await db.query(query,[userId]);
+  return await db.query(query,[userId,offset,limit]);
 }
 
 const productExistsInFavourite=async(productId,userId)=>{

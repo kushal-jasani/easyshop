@@ -122,7 +122,11 @@ exports.addCategory = async (req, res, next) => {
 
 exports.getProducts = async (req, res, next) => {
   try {
-    const [productResults] = await productsMainDetails();
+    const userId=req.user.userId;
+    const page = parseInt(req.query.page) || 1;
+    const limit = 2;
+    const offset = (page - 1) * limit;
+    const [productResults] = await productsMainDetails(userId,limit, offset);
 
     if (productResults.length === 0) {
       return sendHttpResponse(
@@ -130,8 +134,8 @@ exports.getProducts = async (req, res, next) => {
         res,
         next,
         generateResponse({
-          status: "error",
-          statusCode: 404,
+          status: "success",
+          statusCode: 200,
           msg: "products not found",
         })
       );
@@ -207,7 +211,10 @@ exports.getProductDetail = async (req, res, next) => {
 
 exports.getCategoryListUser = async (req, res, next) => {
   try {
-    const [categoryList] = await getCategoryList();
+    const page = parseInt(req.query.page) || 1;
+    const limit = 4;
+    const offset = (page - 1) * limit;
+    const [categoryList] = await getCategoryList(limit,offset);
 
     if (!categoryList || categoryList.length == 0) {
       return sendHttpResponse(
@@ -298,9 +305,12 @@ exports.getSubcategoryOfCategory = async (req, res, next) => {
 exports.getProductsOfSubcategory = async (req, res, next) => {
   try {
     const userId=req.user.userId;
+    const page = parseInt(req.query.page) || 1;
+    const limit = 2;
+    const offset = (page - 1) * limit;
     const subCategory_id = req.params.subCategory_id;
 
-    const [productResults] = await findProductsOfSubCategory(userId,subCategory_id);
+    const [productResults] = await findProductsOfSubCategory(userId,subCategory_id,limit,offset);
     if (!productResults || productResults.length == 0) {
       return sendHttpResponse(
         req,
@@ -401,18 +411,20 @@ exports.postFavouritesProduct = async (req, res, next) => {
 
 exports.getFavouritesProducts = async (req, res, next) => {
   try {
-    
+    const page = parseInt(req.query.page) || 1;
+    const limit = 2;
+    const offset = (page - 1) * limit;
     const userId = req.user.userId;
 
-    const [favouriteResults] = await findFavouriteProductsDetails(userId);
+    const [favouriteResults] = await findFavouriteProductsDetails(userId,limit,offset);
     if (!favouriteResults || favouriteResults.length===0) {
       return sendHttpResponse(
         req,
         res,
         next,
         generateResponse({
-          status: "error",
-          statusCode: 400,
+          status: "success",
+          statusCode: 200,
           msg: "No products have been added to favourites by you yet!!👀",
         })
       );

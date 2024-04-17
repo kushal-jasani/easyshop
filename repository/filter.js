@@ -24,7 +24,7 @@ WHERE
     return await db.query(query,[category_id])
 }
 
-const filterResult=async(searchText,categoryFilters,priceFilter)=>{
+const filterResult=async(searchText,categoryFilters,priceFilter,limit,offset)=>{
 
     let query = `
     SELECT 
@@ -70,10 +70,13 @@ const filterResult=async(searchText,categoryFilters,priceFilter)=>{
     query += `p.price BETWEEN ${minPrice} AND ${maxPrice} AND `;
   }
 
+
   // Remove trailing "AND" if exists
   query = query.replace(/AND\s*$/, '');
 
-  return await db.query(query);
+  query+=`LIMIT ?,?`
+
+  return await db.query(query,[offset,limit]);
 
 }
 

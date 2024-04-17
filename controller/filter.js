@@ -87,7 +87,10 @@ exports.getFilter = async (req, res, next) => {
   try {
     const { searchText,categoryFilters, priceFilter } = req.body;
 
-    const [categoryProducts] = await filterResult(searchText,categoryFilters, priceFilter);
+    const page = parseInt(req.query.page) || 1;
+    const limit = 2;
+    const offset = (page - 1) * limit;
+    const [categoryProducts] = await filterResult(searchText,categoryFilters, priceFilter,limit,offset);
 
     if (!categoryProducts || categoryProducts.length == 0) {
       return sendHttpResponse(
@@ -130,7 +133,7 @@ exports.getFilter = async (req, res, next) => {
 exports.search = async (req, res, next) => {
   try {
     const {searchText} = req.body;
-
+    
     const [searchResults] = await search(searchText);
 
     if (!searchResults || searchResults.length == 0) {
