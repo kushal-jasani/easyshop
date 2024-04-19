@@ -3,11 +3,15 @@ const otpless = require("otpless-node-js-auth-sdk");
 const bcrypt = require("bcryptjs");
 const nodemailer = require("nodemailer");
 const sendgridTransport = require("nodemailer-sendgrid-transport");
-const jwt = require("jsonwebtoken");
 const clientId = process.env.OTPLESS_CLIENTID;
 const clientSecret = process.env.OTPLESS_CLIETSECRET;
 
 const { generateResponse, sendHttpResponse } = require("../helper/response");
+const {
+  generateAccessToken,
+  generateRefreshToken,
+  verifyRefreshToken,
+} = require("../util/jwt");
 const {
   getUserDataByPhoneNo,
   insertCustomer,
@@ -32,9 +36,9 @@ const {
 } = require("../helper/validation_schema");
 const { uploader } = require("../uploads/uploader");
 
-function generateJWT(userId) {
-  return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: "2h" });
-}
+// function generateJWT(userId) {
+//   return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: "2h" });
+// }
 
 // exports.varifyMasterOtpRegister = async (req, res, next) => {
 //   try {
@@ -307,7 +311,7 @@ exports.varifyOtpRegister = async (req, res, next) => {
       generateResponse({
         statusCode: 404,
         status: "error",
-        msg: "entered otp is expired,please try again😓",
+        msg: "entered otp is wrong,please try again😓",
       })
     );
   } catch (error) {
@@ -340,12 +344,7 @@ exports.postRegister = async (req, res, next) => {
         })
       );
     }
-    const {
-      role,
-      phoneno,
-      country_code,
-      
-    } = req.body;
+    const { role, phoneno, country_code } = req.body;
 
     if (parseInt(role) !== 1 && parseInt(role) !== 2) {
       return sendHttpResponse(
@@ -387,14 +386,14 @@ exports.postRegister = async (req, res, next) => {
         })
       );
     }
-    
+
     let imageUrl, aadharphoto;
     if (req.files && req.files["image"]) {
       imageUrl = req.files["image"][0].path;
     } else {
       imageUrl = null;
     }
-    
+
     if (role == 2 && !req.files["aadharphoto"]) {
       return sendHttpResponse(
         req,
@@ -596,7 +595,8 @@ exports.varifyOtpLogin = async (req, res, next) => {
       );
     }
     if (varificationresponse.isOTPVerified === true) {
-      const token = generateJWT(user.id);
+      const accessToken = generateAccessToken(user.id);
+      const refreshToken = generateRefreshToken(user.id);
       return sendHttpResponse(
         req,
         res,
@@ -606,7 +606,7 @@ exports.varifyOtpLogin = async (req, res, next) => {
           status: "success",
           msg: "You're loggedin successfully🥳",
           data: {
-            JWTToken: token,
+            JWTToken: { accessToken, refreshToken },
           },
         })
       );
@@ -623,6 +623,62 @@ exports.varifyOtpLogin = async (req, res, next) => {
     );
   } catch (error) {
     console.log("error while login", error);
+    return sendHttpResponse(
+      req,
+      res,
+      next,
+      generateResponse({
+        status: "error",
+        statusCode: 500,
+        msg: "internal server error",
+      })
+    );
+  }
+};
+
+exports.refreshAccessToken = async (req, res, next) => {
+  try {
+    const { refreshToken } = req.body;
+    const userId = verifyRefreshToken(refreshToken);
+    if (userId === "expired") {
+      return sendHttpResponse(
+        req,
+        res,
+        next,
+        generateResponse({
+          statusCode: 401,
+          status: "error",
+          msg: "Refresh token has expired⏳",
+        })
+      );
+    } else if (!userId) {
+      return sendHttpResponse(
+        req,
+        res,
+        next,
+        generateResponse({
+          statusCode: 401,
+          status: "error",
+          msg: "Invalid refresh token🚨",
+        })
+      );
+    }
+    const accessToken = generateAccessToken(userId);
+    return sendHttpResponse(
+      req,
+      res,
+      next,
+      generateResponse({
+        statusCode: 200,
+        status: "success",
+        msg: "New access token generated successfully🧾",
+        data: {
+          accessToken,
+        },
+      })
+    );
+  } catch (error) {
+    console.log("error while refreshing access token", error);
     return sendHttpResponse(
       req,
       res,

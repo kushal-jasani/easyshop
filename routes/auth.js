@@ -6,6 +6,7 @@ const router = express.Router();
 
 router.post("/login", authcontroller.postLogin);
 router.post("/login/verify-otp", authcontroller.varifyOtpLogin);
+router.post('/refreshAccessToken',authcontroller.refreshAccessToken);
 router.post("/resendOtp", authcontroller.resendOtp);
 
 router.post(
