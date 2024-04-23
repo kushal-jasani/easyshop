@@ -1,4 +1,3 @@
-require("dotenv").config();
 const otpless = require("otpless-node-js-auth-sdk");
 const bcrypt = require("bcryptjs");
 const nodemailer = require("nodemailer");

@@ -362,7 +362,7 @@ exports.getAddressDetails = async (req, res, next) => {
     const [addressDetails]=await findAddressFromId(userId);
 
     if(addressDetails.length==0){
-      return sendHttpResponse(req,res,next,generateResponse({status:'error',statusCode:404,msg:'no address has been added by you yet!!'}))
+      return sendHttpResponse(req,res,next,generateResponse({status:'success',statusCode:200,msg:'no address has been added by you yet!!'}))
     }
 
     return sendHttpResponse(req,res,next,generateResponse({statusCode:200,status:'success',data:{addressDetails},msg:'address fetched successfully🥳'}))
