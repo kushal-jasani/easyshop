@@ -1,10 +1,11 @@
+require("dotenv").config();
+
 const otpless = require("otpless-node-js-auth-sdk");
 const bcrypt = require("bcryptjs");
 const nodemailer = require("nodemailer");
 const sendgridTransport = require("nodemailer-sendgrid-transport");
 const clientId = process.env.OTPLESS_CLIENTID;
 const clientSecret = process.env.OTPLESS_CLIETSECRET;
-
 const { generateResponse, sendHttpResponse } = require("../helper/response");
 const {
   generateAccessToken,
