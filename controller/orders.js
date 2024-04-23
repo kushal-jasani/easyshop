@@ -58,7 +58,7 @@ exports.postOrder = async (req, res, next) => {
         },
       });
       console.log(paymentIntent)
-      await createPaymentDetail(orderId,paymentIntent.id, "online", "pending" ); // Type: 'online', Status: 'pending', Invoice Number: paymentIntent.id
+      await createPaymentDetail(orderId,null, "online", "pending" ); // Type: 'online', Status: 'pending', Invoice Number: paymentIntent.id
     } else {
       return sendHttpResponse(
         req,
@@ -76,6 +76,7 @@ exports.postOrder = async (req, res, next) => {
       statusCode: 200,
       msg: "Order placed successfully",
       data: {
+        paymentIntent_id:paymentIntent.id,
         clientSecret: paymentIntent.client_secret,
         deliveryCharge,
         orderId,
