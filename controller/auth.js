@@ -207,7 +207,7 @@ exports.varifyOtpRegister = async (req, res, next) => {
     }
     let imageUrl, aadharphoto;
     if (req.files && req.files["image"]) {
-      imageUrl = req.files["image"][0].path;
+      imageUrl = req.files["image"][0];
     } else {
       imageUrl = null;
     }
@@ -224,7 +224,7 @@ exports.varifyOtpRegister = async (req, res, next) => {
         })
       );
     } else if (role == 2 && req.files["aadharphoto"]) {
-      aadharphoto = req.files["aadharphoto"][0].path;
+      aadharphoto = req.files["aadharphoto"][0];
     }
 
     const phonewithcountrycode = country_code + phoneno;
@@ -264,9 +264,9 @@ exports.varifyOtpRegister = async (req, res, next) => {
 
       const userId = userResults.insertId;
       if (userId && imageUrl) {
-        let imageResult = await uploader(imageUrl);
+        let imageResult = await uploader(`easyshop/User_${userId}/Profile`,imageUrl);
         const [profileImageUrl = null] = imageResult ?? [];
-        console.log("profileImageUrl: ", profileImageUrl);
+        // console.log("profileImageUrl: ", profileImageUrl);
 
         if (profileImageUrl) {
           await updateUserImage({ userId, profileImageUrl });
@@ -285,9 +285,9 @@ exports.varifyOtpRegister = async (req, res, next) => {
         );
         const businessInsertId = businessResults.insertId;
         if (businessInsertId && aadharphoto) {
-          let imageResult = await uploader(aadharphoto);
+          let imageResult = await uploader(`easyshop/User_${userId}/Profile`,aadharphoto);
           const [aadharImageUrl = null] = imageResult ?? [];
-          console.log("aadharImageUrl: ", aadharImageUrl);
+          // console.log("aadharImageUrl: ", aadharImageUrl);
           if (aadharImageUrl) {
             await updateAadharImage({ businessInsertId, aadharImageUrl });
           }
@@ -311,7 +311,7 @@ exports.varifyOtpRegister = async (req, res, next) => {
       generateResponse({
         statusCode: 404,
         status: "error",
-        msg: "entered otp is wrong,please try again😓",
+        msg: varificationresponse.reason ? varificationresponse.reason :"entered otp is wrong,please try again😓",
       })
     );
   } catch (error) {
@@ -417,7 +417,7 @@ exports.postRegister = async (req, res, next) => {
       "SMS",
       "",
       "",
-      60,
+      600,
       4,
       clientId,
       clientSecret
@@ -519,7 +519,7 @@ exports.postLogin = async (req, res, next) => {
       "SMS",
       "",
       "",
-      60,
+      600,
       4,
       clientId,
       clientSecret
@@ -618,7 +618,7 @@ exports.varifyOtpLogin = async (req, res, next) => {
       generateResponse({
         statusCode: 404,
         status: "error",
-        msg: "entered otp is wrong,please try again😓",
+        msg: varificationresponse.reason ? varificationresponse.reason : "entered otp is wrong,please try again😓",
       })
     );
   } catch (error) {

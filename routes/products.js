@@ -7,8 +7,8 @@ router.get('/category-list',isAuth,productController.categoryListBusiness);
 router.post('/category-list/addcategory',isAuth,productController.addCategory)
 
 router.get('/products',isAuth,productController.getProducts);
-router.get('/products/category-list',productController.getCategoryListUser);
-router.get('/products/category-list/:categoryId',productController.getSubcategoryOfCategory);
+router.get('/products/category-list',isAuth,productController.getCategoryListUser);
+router.get('/products/category-list/:categoryId',isAuth,productController.getSubcategoryOfCategory);
 router.get('/products/category-list/subcategory/:subCategory_id',isAuth,productController.getProductsOfSubcategory);
 
 

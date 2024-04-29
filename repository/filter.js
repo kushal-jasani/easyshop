@@ -51,32 +51,38 @@ const filterResult=async(searchText,categoryFilters,priceFilter,limit,offset)=>{
   `;
 
 
+  const params = [];
 
   // Add category filters to SQL query
   if (categoryFilters && categoryFilters.length > 0) {
-    const categoryIds = categoryFilters.map(category => category.id);
-    query += `s.category_id IN (${categoryIds.join(',')}) AND `;
+    const categoryIds = categoryFilters.map((category) => category);
+    query += `s.category_id IN (${categoryFilters.map(() => '?').join(',')}) AND `;
+    params.push(...categoryIds);
   }
 
   if(searchText){
-    query+=`(c.name LIKE '%${searchText}%'
-    OR s.name LIKE '%${searchText}%'
-    OR p.title LIKE '%${searchText}%') AND `
+    query+=`(c.name LIKE ?
+    OR s.name LIKE ?
+    OR p.title LIKE ?) AND `;
+    params.push(`%${searchText}%`, `%${searchText}%`, `%${searchText}%`);
   }
 
   // Add price filter to SQL query
   if (priceFilter && priceFilter.minPrice && priceFilter.maxPrice) {
     const { minPrice, maxPrice } = priceFilter;
-    query += `p.price BETWEEN ${minPrice} AND ${maxPrice} AND `;
+    query += `p.price BETWEEN ? AND ? AND `;
+    params.push(minPrice, maxPrice);
   }
 
 
   // Remove trailing "AND" if exists
   query = query.replace(/AND\s*$/, '');
 
-  query+=`LIMIT ?,?`
+  query+=`LIMIT ?,?`;
+  params.push(offset, limit);
 
-  return await db.query(query,[offset,limit]);
+
+  return await db.query(query,params);
 
 }
 

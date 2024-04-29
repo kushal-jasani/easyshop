@@ -1,17 +1,22 @@
 const express = require("express");
+const http = require("http");
 const app = express();
+const server = http.createServer(app);
 const authroutes = require("./routes/auth");
 const userrotues = require("./routes/user");
 const productroutes = require("./routes/products");
-const filterroutes=require('./routes/filter')
-const orderroutes=require('./routes/orders')
+const filterroutes = require("./routes/filter");
+const orderroutes = require("./routes/orders");
+const feedroutes = require("./routes/feed");
 const bodyparser = require("body-parser");
+const { initializeWebSocket } = require("./util/websocket");
+
 
 require("dotenv").config();
-
 app.use(bodyparser.urlencoded({ extended: true }));
 app.use(bodyparser.json());
 
+initializeWebSocket(server);
 
 app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -25,5 +30,9 @@ app.use("/auth", authroutes);
 app.use(userrotues);
 app.use(productroutes);
 app.use(filterroutes);
-app.use(orderroutes)
-app.listen(process.env.PORT);
+app.use(orderroutes);
+app.use("/feed", feedroutes);
+
+server.listen(process.env.PORT);
+
+

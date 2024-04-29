@@ -1,4 +1,4 @@
-const cloudinary = require('cloudinary').v2;
+const cloudinary = require("cloudinary").v2;
 
 const { sendHttpResponse, generateResponse } = require("../helper/response");
 const {
@@ -9,17 +9,15 @@ const {
   insertCardDetails,
   findDuplicateCard,
   insertAddress,
-  findAddressFromId
+  findAddressFromId,
 } = require("../repository/user");
-const {getUserDataByPhoneNo}=require('../repository/auth')
-const { findRole} = require("../repository/products");
+const { getUserDataByPhoneNo } = require("../repository/auth");
+const { findRole } = require("../repository/products");
 const { uploader } = require("../uploads/uploader");
 const { extractPublicId } = require("../uploads/public_id");
 
-
 exports.getUserDetails = async (req, res, next) => {
   try {
-   
     const userId = req.user.userId;
 
     const [userResults] = await userDetailsFromId(userId);
@@ -55,7 +53,7 @@ exports.getUserDetails = async (req, res, next) => {
       userDetails = {
         email: user.email,
         phoneno: user.phoneno,
-        image:businessResult[0].image,
+        image: businessResult[0].image,
         b_name: businessResult[0].b_name,
         b_logo: businessResult[0].b_logo,
         category: businessResult[0].category,
@@ -99,13 +97,27 @@ exports.postUpdateDetails = async (req, res, next) => {
   try {
     const userId = req.user.userId;
     const updatedFields = req.body;
-    const [userData]=await userDetailsFromId(userId);
+    const [userData] = await userDetailsFromId(userId);
+    const [businessData]=await businessDetailsFromId(userId)
     const [roleOfCurrentUser] = await findRole(userId);
-    const role=roleOfCurrentUser[0].role;
+    const role = roleOfCurrentUser[0].role;
 
     const allowedFields = {
-      1: ['firstname', 'lastname', 'email', 'phoneno','image'],
-      2: ['email', 'phoneno', 'b_name', 'category', 'subcategory', 'city', 'state', 'country', 'address', 'aadhar_photo', 'aadhar_no','image']
+      1: ["firstname", "lastname", "email", "phoneno", "image"],
+      2: [
+        "email",
+        "phoneno",
+        "b_name",
+        "category",
+        "subcategory",
+        "city",
+        "state",
+        "country",
+        "address",
+        "aadhar_photo",
+        "aadhar_no",
+        "image",
+      ],
     };
 
     if (!allowedFields[role]) {
@@ -123,37 +135,42 @@ exports.postUpdateDetails = async (req, res, next) => {
 
     let imageUrl;
 
-    if (req.files && req.files['image']) {
-      const publicId = await extractPublicId(userData[0].image)
-      cloudinary.api.delete_resources([publicId], { type: 'upload', resource_type: 'image' })
-                    .then(console.log('Deleted old profile image'));
-      const imageFile = req.files['image'][0].path;
-      imageUrl = await uploader(imageFile);
+    if (req.files && req.files["image"]) {
+
+      const publicId = await extractPublicId(userData[0].image);
+      cloudinary.api
+        .delete_resources([publicId], {
+          type: "upload",
+          resource_type: "image",
+        })
+        .then(console.log("Deleted old profile image"));
+      const imageFile = req.files["image"][0];
+      imageUrl = await uploader(`easyshop/User_${userId}/Profile`, imageFile);
     }
     if (imageUrl) {
-      updatedFields['image'] = imageUrl;
+      updatedFields["image"] = imageUrl;
     }
 
-    if(updatedFields.phoneno){
+    if (updatedFields.phoneno) {
+      let [existingUser] = await getUserDataByPhoneNo(updatedFields.phoneno);
 
-    let [existingUser] = await getUserDataByPhoneNo(updatedFields.phoneno);
-
-    if (existingUser.length > 0 && existingUser[0].id !== userId) {
-      return sendHttpResponse(
-        req,
-        res,
-        next,
-        generateResponse({
-          statusCode: 400,
-          status: "error",
-          msg: `Can't update..User with this phone number ${updatedFields.phoneno} already exists👀`,
-        })
-      );
+      if (existingUser.length > 0 && existingUser[0].id !== userId) {
+        return sendHttpResponse(
+          req,
+          res,
+          next,
+          generateResponse({
+            statusCode: 400,
+            status: "error",
+            msg: `Can't update..User with this phone number ${updatedFields.phoneno} already exists👀`,
+          })
+        );
+      }
     }
 
-    }
-
-    const disallowedFields = Object.keys(updatedFields).filter(field => !allowedFields[role].includes(field));
+    const disallowedFields = Object.keys(updatedFields).filter(
+      (field) => !allowedFields[role].includes(field)
+    );
     if (disallowedFields.length > 0) {
       return sendHttpResponse(
         req,
@@ -162,22 +179,31 @@ exports.postUpdateDetails = async (req, res, next) => {
         generateResponse({
           statusCode: 400,
           status: "error",
-          msg: `Updating ${disallowedFields.join(', ')} is not allowed for users with role ${role}`,
+          msg: `Updating ${disallowedFields.join(
+            ", "
+          )} is not allowed for users with role ${role}`,
         })
       );
     }
 
     let aadharImageUrl;
 
-    if (req.files && req.files['aadharphoto']) {
-      const publicId = await extractPublicId(userData[0].aadhar_photo)
-      cloudinary.api.delete_resources([publicId], { type: 'upload', resource_type: 'image' })
-                    .then(console.log('Deleted old aadhar image'));
-      const imageFile = req.files['aadharphoto'][0].path;
-      aadharImageUrl = await uploader(imageFile);
+    if (req.files && req.files["aadharphoto"]) {
+      const publicId = await extractPublicId(businessData[0].aadhar_photo);
+      cloudinary.api
+        .delete_resources([publicId], {
+          type: "upload",
+          resource_type: "image",
+        })
+        .then(console.log("Deleted old aadhar image"));
+      const imageFile = req.files["aadharphoto"][0];
+      aadharImageUrl = await uploader(
+        `easyshop/User_${userId}/Profile`,
+        imageFile
+      );
     }
     if (aadharImageUrl) {
-      updatedFields['aadhar_photo'] = aadharImageUrl;
+      updatedFields["aadhar_photo"] = aadharImageUrl;
     }
     // const filteredFields = Object.keys(updatedFields)
     // .filter(key => allowedFields[role].includes(key))
@@ -186,7 +212,7 @@ exports.postUpdateDetails = async (req, res, next) => {
     //   return obj;
     // }, {});
 
-    const [results] = await updateUserDetails(updatedFields,userId,role);
+    const [results] = await updateUserDetails(updatedFields, userId, role);
 
     if (results.affectedRows == 0) {
       return sendHttpResponse(
@@ -314,7 +340,7 @@ exports.postCardsDetails = async (req, res, next) => {
       );
     }
 
-    const [existingCards] = await findDuplicateCard(card_num,userId);
+    const [existingCards] = await findDuplicateCard(card_num, userId);
     if (existingCards.length > 0) {
       return sendHttpResponse(
         req,
@@ -356,21 +382,47 @@ exports.postCardsDetails = async (req, res, next) => {
 };
 
 exports.getAddressDetails = async (req, res, next) => {
-  try{
-    const userId=req.user.userId;
+  try {
+    const userId = req.user.userId;
 
-    const [addressDetails]=await findAddressFromId(userId);
+    const [addressDetails] = await findAddressFromId(userId);
 
-    if(addressDetails.length==0){
-      return sendHttpResponse(req,res,next,generateResponse({status:'success',statusCode:200,msg:'no address has been added by you yet!!'}))
+    if (addressDetails.length == 0) {
+      return sendHttpResponse(
+        req,
+        res,
+        next,
+        generateResponse({
+          status: "success",
+          statusCode: 200,
+          msg: "no address has been added by you yet!!",
+        })
+      );
     }
 
-    return sendHttpResponse(req,res,next,generateResponse({statusCode:200,status:'success',data:{addressDetails},msg:'address fetched successfully🥳'}))
-
-  }
-  catch(error){
-    console.log("error while fetching address",error);
-    return sendHttpResponse(req,res,next,generateResponse({status:'error',statusCode:'500',msg:'Internal server error'}))
+    return sendHttpResponse(
+      req,
+      res,
+      next,
+      generateResponse({
+        statusCode: 200,
+        status: "success",
+        data: { addressDetails },
+        msg: "address fetched successfully🥳",
+      })
+    );
+  } catch (error) {
+    console.log("error while fetching address", error);
+    return sendHttpResponse(
+      req,
+      res,
+      next,
+      generateResponse({
+        status: "error",
+        statusCode: "500",
+        msg: "Internal server error",
+      })
+    );
   }
 };
 
@@ -379,14 +431,18 @@ exports.postAddressDetails = async (req, res, next) => {
     const userId = req.user.userId;
     const { type, address, city, state, country, zip } = req.body;
 
-    await insertAddress(userId,type,address, city, state, country, zip);
+    await insertAddress(userId, type, address, city, state, country, zip);
 
-    return sendHttpResponse(req,res,next,generateResponse({
-      statusCode:201,
-      status:'success',
-      msg:"address added successfully✅"
-    }))
-
+    return sendHttpResponse(
+      req,
+      res,
+      next,
+      generateResponse({
+        statusCode: 201,
+        status: "success",
+        msg: "address added successfully✅",
+      })
+    );
   } catch (error) {
     console.log("error while adding address", error);
     return sendHttpResponse(

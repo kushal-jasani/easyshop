@@ -147,7 +147,7 @@ exports.getProducts = async (req, res, next) => {
       generateResponse({
         statusCode: 200,
         status: "success",
-        data: productResults,
+        data: {page,limit,productResults},
         msg: "product data retrived successfully",
       })
     );
@@ -235,7 +235,7 @@ exports.getCategoryListUser = async (req, res, next) => {
       generateResponse({
         statusCode: 200,
         status: "success",
-        data: { categoryList },
+        data: {page,limit, categoryList },
         msg: "Category list fetched successfully✅",
       })
     );
@@ -335,7 +335,7 @@ exports.getProductsOfSubcategory = async (req, res, next) => {
       generateResponse({
         statusCode: 200,
         status: "success",
-        data: productResults,
+        data: {page,limit,productResults},
         msg: "products details of given subcategory data retrived successfully✅",
       })
     );
@@ -436,7 +436,7 @@ exports.getFavouritesProducts = async (req, res, next) => {
       generateResponse({
         statusCode: 200,
         status: "success",
-        data:favouriteResults,
+        data:{page,limit,favouriteResults},
         msg: "favourite product list fetched successfully❤️",
       })
     );

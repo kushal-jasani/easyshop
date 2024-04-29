@@ -48,7 +48,10 @@ exports.categoryFilter = async (req, res, next) => {
 
 exports.showFilter = async (req, res, next) => {
   try {
-    const [categoryList] = await getCategoryList();
+    const page = parseInt(req.query.page) || 1;
+    const limit = 15;
+    const offset = (page - 1) * limit;
+    const [categoryList] = await getCategoryList(limit,offset);
     const categoryFilters = categoryList.map((category) => {
       const { image, ...rest } = category;
       return rest;
@@ -111,7 +114,7 @@ exports.getFilter = async (req, res, next) => {
       generateResponse({
         statusCode: 200,
         status: "success",
-        data: categoryProducts,
+        data: {page,limit,categoryProducts},
         msg: "filter successful💪🏻",
       })
     );
