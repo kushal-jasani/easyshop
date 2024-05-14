@@ -172,6 +172,7 @@ exports.resendOtp = async (req, res, next) => {
     );
   }
 };
+
 exports.varifyOtpRegister = async (req, res, next) => {
   try {
     const {

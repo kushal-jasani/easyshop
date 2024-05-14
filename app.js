@@ -8,6 +8,7 @@ const productroutes = require("./routes/products");
 const filterroutes = require("./routes/filter");
 const orderroutes = require("./routes/orders");
 const feedroutes = require("./routes/feed");
+const messageroutes=require('./routes/messages')
 const bodyparser = require("body-parser");
 const { initializeWebSocket } = require("./util/websocket");
 
@@ -32,6 +33,7 @@ app.use(productroutes);
 app.use(filterroutes);
 app.use(orderroutes);
 app.use("/feed", feedroutes);
+app.use('/messages',messageroutes)
 
 server.listen(process.env.PORT);
 

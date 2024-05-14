@@ -3,7 +3,7 @@ const WebSocket = require('ws');
 require("dotenv").config();
 const jwt = require('jsonwebtoken');
 
-
+const clients = new Map();
 let wss;
 
 const initializeWebSocket = (server) => {
@@ -20,11 +20,12 @@ const initializeWebSocket = (server) => {
     try {
       const decoded = jwt.verify(token,process.env.JWT_SECRET);
       
-      ws.userId=decoded.userId;
-
-      console.log('Client connected with userId:', decoded.userId);
+      const userId=decoded.userId;
+      clients.set(userId, ws);
+      console.log('Client connected with userId:', userId);
       
       ws.on('close', () => {
+        clients.delete(userId);
         console.log('Client disconnected');
       });
     } catch (error) {
@@ -37,5 +38,9 @@ const getWebSocketServer = () => {
   return wss;
 };
 
-module.exports = { initializeWebSocket, getWebSocketServer };
+const getClientByUserId = (userId) => {
+  return clients.get(userId);
+};
+
+module.exports = { initializeWebSocket, getWebSocketServer ,getClientByUserId};
 
